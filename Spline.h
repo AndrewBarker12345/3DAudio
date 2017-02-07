@@ -1,36 +1,41 @@
 /*
-     3DAudio: simulates surround sound audio for headphones
-     Copyright (C) 2016  Andrew Barker
-     
-     This program is free software: you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published by
-     the Free Software Foundation, either version 3 of the License, or
-     (at your option) any later version.
-     
-     This program is distributed in the hope that it will be useful,
-     but WITHOUT ANY WARRANTY; without even the implied warranty of
-     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-     GNU General Public License for more details.
-     
-     You should have received a copy of the GNU General Public License
-     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-     
-     The author can be contacted via email at andrew.barker.12345@gmail.com.
- */
+ Spline.h
+ 
+ Polymorphic splines.
+
+ Copyright (C) 2017  Andrew Barker
+ 
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ 
+ The author can be contacted via email at andrew.barker.12345@gmail.com.
+*/
 
 #ifndef __Spline_h__
 #define __Spline_h__
 
 #include <vector>
+#include <memory>
 
-enum SplineShape
+enum class SplineShape
 {
+    INVALID = -1,
     LINEAR,     // linearly interpolates
     CUBIC,      // cubicly interpolates
     EMPTY       // a non existant spline
 };
 
-enum SplineBehavior
+enum class SplineBehavior
 {
     FUNCTIONAL,
     PARAMETRIC
@@ -43,7 +48,7 @@ class Spline
 public:
     // for polymorphic copying of splines, default copy constructors should be fine for splines as we have no pointers...
     virtual std::unique_ptr<Spline<T>> clone() = 0;
-    virtual ~Spline() {};
+    virtual ~Spline() {}
     // a spline is pretty much an N-dimensional function f(val) = [y,z,a,...]
     virtual std::vector<T> pointAt(const T& val) = 0;
     //virtual void pointAt(const T& val, T* point) = 0;
@@ -52,7 +57,7 @@ public:
     virtual void calc() = 0;
     // load from new interpolator point range centered about the spline and recalc spline
     virtual void calc(const std::vector<std::vector<T>>& new_points) = 0;
-    SplineShape type;
+    virtual SplineShape getShape() const noexcept = 0;
 protected:
     // points that are used to construct it
     std::vector<std::vector<T>> points;
@@ -63,19 +68,14 @@ template <typename T>
 class EmptySpline : public Spline<T>
 {
 public:
-    EmptySpline() { type = EMPTY; };
-    std::unique_ptr<Spline<T>> clone() override { return std::unique_ptr<Spline<T>>(new EmptySpline<T>(*this)); };
+    std::unique_ptr<Spline<T>> clone() override { return std::make_unique<EmptySpline<T>>(*this); }
     // return an empty vector to signal an open spline segment
-    std::vector<T> pointAt(const T& val) override
-    {
-        std::vector<T> empty;
-        return empty;
-    };
+    std::vector<T> pointAt(const T& val) override { return std::vector<T>(); }
     //void pointAt(const T& val, T* point) { /*point = nullptr;*/ }; // this don't set the external pointer
-    void pointAt(const T& val, T** point) const override { *point = nullptr; }; // this do
-    void calc() override {};
-    void calc(const std::vector<std::vector<T>>& new_points) override {};
-    using Spline<T>::type;
+    void pointAt(const T& val, T** point) const override { *point = nullptr; } // this do
+    void calc() override {}
+    void calc(const std::vector<std::vector<T>>& new_points) override {}
+    SplineShape getShape() const noexcept override { return SplineShape::EMPTY; }
 };
 
 // virtual class for recomputing an N-point spline from a set of N points from an interpolator
