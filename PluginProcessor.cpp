@@ -38,11 +38,15 @@ ThreeDAudioProcessor::ThreeDAudioProcessor()
     if (numRefs == 0) {
         // unified poles, compact data
         // binary hrtf file name
-        String path = File::getSpecialLocation(File::currentApplicationFile).getFullPathName();
+        String path;
+      #ifdef __APPLE__
+        path = File::getSpecialLocation(File::currentApplicationFile).getFullPathName();
         path += "/Contents/3DAudioData.bin";
-        //String path = File::getSpecialLocation(File::currentApplicationFile).getParentDirectory().getFullPathName();
-		//path += "/3DAudioData.bin"; // the compact, unified poles data that is
-        // basic read (should be cross platform)
+      #elif _WIN32
+        path = File::getSpecialLocation(File::currentApplicationFile).getParentDirectory().getFullPathName();
+	path += "/3DAudioData.bin";
+      #endif
+        // basic read (cross platform)
         // open the stream
         std::ifstream is (path.getCharPointer(), std::ios::binary);
         if (is.good()) {
