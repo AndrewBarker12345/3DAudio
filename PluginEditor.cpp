@@ -3573,7 +3573,7 @@ void ThreeDAudioProcessorEditor::mouseUp(const MouseEvent & event)
                     processor->setProcessingMode((ProcessingMode)selectedMode);
                     processingModeOptions.setAutoDetected(processor->isHostRealTime ? 0 : 1);
                 } else if (websiteButton.mouseClicked()) {
-                    const URL url ("https://www.freedomaudioplugins.com");
+                    const URL url ("http://www.freedomaudioplugins.com");
                     url.launchInDefaultBrowser();
                 }
 //                int selectedMode = processingModeOptions.updateFromMouse(m_x, m_y, true, windowAspectRatio);
