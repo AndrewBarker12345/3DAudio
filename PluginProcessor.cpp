@@ -27,6 +27,49 @@
 #include "Data.h"
 #include <fstream>
 
+#ifdef DEMO // Demo version only
+class BuyMeWindowContents : public Component, public TextButton::Listener
+{
+public:
+    BuyMeWindowContents() : text ()
+    {
+        setSize(330, 150);
+        
+        addAndMakeVisible(text);
+        text.setText("This is the demo version of 3DAudio which is intended to let you try before you buy.  The demo version is restricted to 15 minutes of use at a time and saving plugin state is disabled.  Otherwise the demo version has all the functionality that the full version has.", dontSendNotification);
+        text.setColour(Label::textColourId, Colour(Colours::white).withAlpha(0.7f));
+        text.setBoundsRelative(0.025f, 0, 0.95f, 0.7f);
+        
+        addAndMakeVisible(button);
+        button.setButtonText("Buy Full Version");
+        button.setColour(TextButton::ColourIds::textColourOffId, Colours::white.withAlpha(0.7f));
+        button.setColour(TextButton::ColourIds::textColourOnId, Colours::white.withAlpha(1.0f));
+        button.setColour(TextButton::ColourIds::buttonColourId, Colours::black.withAlpha(0.7f));
+        button.setColour(TextButton::ColourIds::buttonOnColourId, Colours::black.withAlpha(1.0f));
+        
+        button.setBoundsRelative(0.3f, 0.75f, 0.4f, 0.2f);
+        button.addListener(this);
+    }
+    
+    void buttonClicked (Button*) override
+    {
+        const URL url ("http://freedomaudioplugins.com/downloads/3d-audio/");
+        url.launchInDefaultBrowser();
+    }
+    
+    Label text;
+    TextButton button;
+};
+
+void ThreeDAudioProcessor::timerCallback()
+{
+    if (!AudioProcessor::isSuspended())
+        AudioProcessor::suspendProcessing(true);
+    buyMeWindow = buyMeWindowLauncher.launchAsync();
+	Timer::stopTimer();
+}
+#endif
+
 // the global hrir data that gets one instance across multiple plugin instances
 float***** HRIRdata;
 float****  HRIRdataPoles;
@@ -44,9 +87,9 @@ ThreeDAudioProcessor::ThreeDAudioProcessor()
         path += "/Contents/3DAudioData.bin";
       #elif _WIN32
         path = File::getSpecialLocation(File::currentApplicationFile).getParentDirectory().getFullPathName();
-	path += "/3DAudioData.bin";
+		path += "/3DAudioData.bin";
       #endif
-        // basic read (cross platform)
+        // basic read (should be cross platform)
         // open the stream
         std::ifstream is (path.getCharPointer(), std::ios::binary);
         if (is.good()) {
@@ -135,10 +178,27 @@ ThreeDAudioProcessor::ThreeDAudioProcessor()
         addParameter(sourcePathPositionsFromDAW[i] = new AudioParameterFloat ("Source " + String(i+1) + " Position",
                                                                               "Source " + String(i+1) + " Position",
                                                                               NormalisableRange<float>(0, 1), 0));
+  #ifdef DEMO // Demo version only
+    buyMeWindowLauncher.dialogTitle = "3DAudio Demo Version";
+    buyMeWindowLauncher.dialogBackgroundColour = Colours::black.withAlpha(0.9f);
+    buyMeWindowLauncher.escapeKeyTriggersCloseButton = true;
+    buyMeWindowLauncher.resizable = false;
+    buyMeWindowLauncher.useNativeTitleBar = false;
+    buyMeWindowLauncher.componentToCentreAround = nullptr;//editor;
+    buyMeWindowLauncher.content.setOwned(new BuyMeWindowContents());
+    Timer::startTimer(15 * 60 * 1000);
+  #endif
 }
 
 ThreeDAudioProcessor::~ThreeDAudioProcessor()
 {
+  #ifdef DEMO // Demo version only
+	if (buyMeWindow && buyMeWindow->isCurrentlyModal()) {
+		buyMeWindow->setVisible(false);
+		buyMeWindow->exitModalState(0);
+	}
+  #endif
+    
     // cleanup memeory for undo's
     clearUndoHistory();
 
@@ -1600,13 +1660,14 @@ bool ThreeDAudioProcessor::hasEditor() const
 
 AudioProcessorEditor* ThreeDAudioProcessor::createEditor()
 {
-	ThreeDAudioProcessorEditor* editor = new ThreeDAudioProcessorEditor (this);
+	/*ThreeDAudioProcessorEditor* */ editor = new ThreeDAudioProcessorEditor (this);
     return editor;
 }
 
 //==============================================================================
 void ThreeDAudioProcessor::getStateInformation (MemoryBlock& destData)
 {
+  #ifndef DEMO // saving state info is disable for demo version
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
@@ -1639,6 +1700,7 @@ void ThreeDAudioProcessor::getStateInformation (MemoryBlock& destData)
     }
     // then use this helper function to stuff it into the binary blob and return it..
     copyXmlToBinary (xml, destData);
+  #endif
 }
 
 void ThreeDAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
@@ -1683,6 +1745,7 @@ void ThreeDAudioProcessor::setStateInformation (const void* data, int sizeInByte
                     makeSourcesVisibleForPathAutomationView();
             }
             saveCurrentState(1);
+            
         }
     }
 //    // update the editor with the new window size loaded from the settings
