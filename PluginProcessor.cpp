@@ -1660,7 +1660,7 @@ bool ThreeDAudioProcessor::hasEditor() const
 
 AudioProcessorEditor* ThreeDAudioProcessor::createEditor()
 {
-	/*ThreeDAudioProcessorEditor* */ editor = new ThreeDAudioProcessorEditor (this);
+    ThreeDAudioProcessorEditor* editor = new ThreeDAudioProcessorEditor (this);
     return editor;
 }
 
