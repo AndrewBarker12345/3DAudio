@@ -1,25 +1,28 @@
+//
+//  SoundSource.cpp
+//
+//  Created by Andrew Barker on 7/2/14.
+//
+//
 /*
- SoundSource.cpp
- 
- Represents a sound source at a 3d location in space that may have a path of motion that can play audio.
-
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+     3DAudio: simulates surround sound audio for headphones
+     Copyright (C) 2016  Andrew Barker
+     
+     This program is free software: you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published by
+     the Free Software Foundation, either version 3 of the License, or
+     (at your option) any later version.
+     
+     This program is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+     GNU General Public License for more details.
+     
+     You should have received a copy of the GNU General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+     
+     The author can be contacted via email at andrew.barker.12345@gmail.com.
+ */
 
 #include "SoundSource.h"
 #include "Functions.h"
@@ -232,28 +235,12 @@ std::unique_ptr<Interpolator<float>> SoundSource::getInterpolator(const XmlEleme
 
 void SoundSource::boundsCheckRAE(std::array<float,3>& rae, float& eleDirection) noexcept
 {
-    // bounds checking for the setting the source's position
-    while (rae[2] < 0)
-        rae[2] += 2.0*M_PI;
-    while (rae[2] > 2.0*M_PI)
-        rae[2] -= 2.0*M_PI;
-    // now eleTemp must be between 0 and 2pi, just have to make sure it is btw 0 and pi now
-    if (rae[2] > M_PI)
-    {
-        rae[2] = M_PI-(rae[2]-M_PI);
-        rae[1] = M_PI+rae[1];
-        eleDirection *= -1;
-    }
-    while (rae[1] > 2.0*M_PI)
-        rae[1] -= 2.0*M_PI;
-    while (rae[1] < 0)
-        rae[1] += 2.0*M_PI;
-    // no moving source inside the head (rad = 0.1 meters)
-    if (rae[0] < distanceBegin)
-        rae[0] = distanceBegin;
+	float stackrae[3] = { rae[0], rae[1], rae[2] };
+	boundsCheckRAE(stackrae, eleDirection);
+	rae[0] = stackrae[0]; rae[1] = stackrae[1]; rae[2] = stackrae[2];
 }
 
-void SoundSource::boundsCheckRAE(float (&rae)[3], float& eleDirection)
+void SoundSource::boundsCheckRAE(float (&rae)[3], float& eleDirection) noexcept
 {
     // bounds checking for the setting the source's position
     while (rae[2] < 0)
@@ -271,9 +258,11 @@ void SoundSource::boundsCheckRAE(float (&rae)[3], float& eleDirection)
         rae[1] -= 2.0*M_PI;
     while (rae[1] < 0)
         rae[1] += 2.0*M_PI;
-    // no moving source inside the head (rad = 0.1meters)
+    // no moving source inside the head (rad = 0.1meters), or more than 50m away
     if (rae[0] < distanceBegin)
         rae[0] = distanceBegin;
+	else if (rae[0] > 50)
+		rae[0] = 50;
 }
 
 void SoundSource::boundsCheckXYZ(std::array<float, 3>& xyz)
@@ -346,7 +335,7 @@ bool SoundSource::setParametricPosition(const float posSec, int& prevPathPosInde
                 float range[2];
                 path->getInputRangeQuick(range);
                 // the 0.999999 scaling here is to prevent the case when a pt-pt interp would suddenly jump back to the begining of the path if the y value is exactly equal to 1.0
-                if (path->pointAt(y * range[1] * 0.999999f, xyz))
+                if (y == y && path->pointAt(y * range[1] * 0.999999f, xyz)) // also make sure y is not a nan
                 {
                     setPosXYZ(xyz);
                     setPosFromPath = true;
@@ -715,9 +704,10 @@ PlayableSoundSource::~PlayableSoundSource()
     //inputs.clear();
     //for (int i = 0; i < inputs.size(); ++i)
     //   inputs[i].~_Input_();
-    delete[] hqHRIRs;
-    delete[] hqHRIRScaling;
-    delete[] temp;
+
+    //delete[] hqHRIRs;
+    //delete[] hqHRIRScaling;
+    //delete[] temp;
 }
 
 void PlayableSoundSource::advancePosition() noexcept
@@ -764,16 +754,22 @@ std::array<float,3> PlayableSoundSource::getPosRAE() const noexcept
 void PlayableSoundSource::allocateForMaxBufferSize(const int N_max)
 {
     Nmax = N_max;
-    inputs.resize(std::ceil((float)(numTimeSteps-1)/((float)Nmax)) + 1);
-    for (auto& input : inputs)
-        input.setSize(Nmax);
-    newInputIndex = 0;
+	inputBuffer.resize(Nmax * (std::ceil(float(numTimeSteps - 1) / float(Nmax)) + 1), 0.0f);
+	inputBufferInPos = 0;
+	inputBufferOutPos = 0;
+	const int maxNumHRIRs = (Nmax >> 1) + 1; // new hrir position for each 2 samples seems more than sufficient...
+	hqHRIRs.resize(maxNumHRIRs * 2 * numTimeSteps, 0);
+	hqHRIRScaling.resize(maxNumHRIRs * 2, 0);
+    //inputs.resize(std::ceil((float)(numTimeSteps-1)/((float)Nmax)) + 1);
+    //for (auto& input : inputs)
+    //    input.setSize(Nmax);
+    //newInputIndex = 0;
     if (dopplerOn)
     {
         //doppler[0].free();
         //doppler[1].free();
-        doppler[0].allocate(dopplerMaxDistance, Nmax, dopplerSpeedOfSound);
-        doppler[1].allocate(dopplerMaxDistance, Nmax, dopplerSpeedOfSound);
+        doppler[0].allocate(dopplerMaxDistance, Nmax, 0.1f/*dopplerSpeedOfSound*/);
+        doppler[1].allocate(dopplerMaxDistance, Nmax, 0.1f/*dopplerSpeedOfSound*/);
     }
 }
 
@@ -791,25 +787,42 @@ void PlayableSoundSource::setDopplerOn(const bool newDopplerOn, const float newS
 {
     const bool speedOfSoundChanged = (newSpeedOfSound != dopplerSpeedOfSound);
     dopplerSpeedOfSound = newSpeedOfSound;
-    if (newDopplerOn != dopplerOn || speedOfSoundChanged)
-    {
-        if (newDopplerOn || speedOfSoundChanged)
-        {
-            doppler[0].allocate(dopplerMaxDistance, Nmax, dopplerSpeedOfSound);
-            doppler[1].allocate(dopplerMaxDistance, Nmax, dopplerSpeedOfSound);
-        }
-        else
-        {
-            doppler[0].free();
-            doppler[1].free();
-        }
-        // reset processing state of sound source
-        for (auto& i : inputs)
-            i.clear();
-        newInputIndex = 0;
-        HRIRChange = false;
-        prevRAE = posRAE;
-    }
+	doppler[0].setSpeedOfSound(dopplerSpeedOfSound);
+	doppler[1].setSpeedOfSound(dopplerSpeedOfSound);
+	if (newDopplerOn != dopplerOn) {
+		if (newDopplerOn) {
+			doppler[0].allocate(dopplerMaxDistance, Nmax, 0.1f);
+			doppler[1].allocate(dopplerMaxDistance, Nmax, 0.1f);
+		} else {
+			doppler[0].free();
+			doppler[1].free();
+		}
+		// reset processing state of sound source
+		for (auto& i : inputs)
+			i.clear();
+		newInputIndex = 0;
+		HRIRChange = false;
+		prevRAE = posRAE;
+	}
+    //if (newDopplerOn != dopplerOn || speedOfSoundChanged)
+    //{
+    //    if (newDopplerOn || speedOfSoundChanged)
+    //    {
+    //        doppler[0].allocate(dopplerMaxDistance, Nmax, dopplerSpeedOfSound);
+    //        doppler[1].allocate(dopplerMaxDistance, Nmax, dopplerSpeedOfSound);
+    //    }
+    //    else
+    //    {
+    //        doppler[0].free();
+    //        doppler[1].free();
+    //    }
+    //    // reset processing state of sound source
+    //    for (auto& i : inputs)
+    //        i.clear();
+    //    newInputIndex = 0;
+    //    HRIRChange = false;
+    //    prevRAE = posRAE;
+    //}
     dopplerOn = newDopplerOn;
 }
 
@@ -855,7 +868,7 @@ void PlayableSoundSource::processAudio(const float* in, const int N, float* out,
             whichHRIRs = &HRIRs[0];
             whichHRIRScaling = &HRIRScaling[0];
             // end of the positional interps (only one that needs computation for realtime)
-            interpolateHRIR(&posRAE[0], &HRIRs[2*numTimeSteps]);//&whichHRIRs[(numHRIRs-1)*2*numTimeSteps]);
+            interpolateHRIR(&posRAE[0], &HRIRs[2*numTimeSteps]);
             // this pre-convolution normalization is required to get rid of the crackling in the quiet ear for close sources due to floating point addition inaccuracy
             HRIRScaling[2] = HRIRScaling[3] = 0;
             for (int n = 0; n < numTimeSteps; ++n) {
@@ -870,33 +883,21 @@ void PlayableSoundSource::processAudio(const float* in, const int N, float* out,
             }
             HRIRScaling[2] = 1.0/HRIRScaling[2];
             HRIRScaling[3] = 1.0/HRIRScaling[3];
-//            scaleCh1 = 0, scaleCh2 = 0;
-//            float* const beginNewHRIR = &whichHRIRs[(numHRIRs-1)*2*numTimeSteps];
-//            for (int n = 0; n < numTimeSteps; ++n) {
-//                scaleCh1 += std::abs(beginNewHRIR[n]);
-//                scaleCh2 += std::abs(beginNewHRIR[n+numTimeSteps]);
-//            }
-//            scaleCh1 = 1.0/scaleCh1;
-//            scaleCh2 = 1.0/scaleCh2;
-//            for (int n = 0; n < numTimeSteps; ++n) {
-//                beginNewHRIR[n]              *= scaleCh1;
-//                beginNewHRIR[n+numTimeSteps] *= scaleCh2;
-//            }
-//            scaleCh1 = 1.0/scaleCh1;
-//            scaleCh2 = 1.0/scaleCh2;
-        } else {
-            // for non-realtime processing, we can go crazy and have each output sample be processed with a different blending position for nice smooth audio despite potentially fast moving source
-            // (note the N+1 instead of N because the blend widths are calculated L = 2N/(numHRIRs-1) and we want L = 2.0 in this case)
-            const int newNumHRIRs = (N>>1/*HRIRInterpQuality*/)+1; // new hrir position for each 2 samples seems more than sufficient...
-            if (newNumHRIRs != numHRIRs) {
-                numHRIRs = newNumHRIRs;
-                delete[] hqHRIRs;
-                hqHRIRs = new float[numHRIRs*2*numTimeSteps];
-                delete[] hqHRIRScaling;
-                hqHRIRScaling = new float[numHRIRs*2];
-            }
-            whichHRIRs = hqHRIRs;
-            whichHRIRScaling = hqHRIRScaling;
+		}
+		else {
+			// for non-realtime processing, we can go crazy and have each output sample be processed with a different blending position for nice smooth audio despite potentially fast moving source
+			// (note the N+1 instead of N because the blend widths are calculated L = 2N/(numHRIRs-1) and we want L = 2.0 in this case)
+			numHRIRs = (N >> 2) + 1; // new hrir position for each 2 samples seems more than sufficient...
+			//const int newNumHRIRs = (N >> 1/*HRIRInterpQuality*/) + 1; // new hrir position for each 2 samples seems more than sufficient...
+			//if (newNumHRIRs != numHRIRs) {
+			//	numHRIRs = newNumHRIRs;
+			//	delete[] hqHRIRs;
+			//	hqHRIRs = new float[numHRIRs*2*numTimeSteps];
+			//	delete[] hqHRIRScaling;
+			//	hqHRIRScaling = new float[numHRIRs*2];
+			//}
+			whichHRIRs = &hqHRIRs[0];
+            whichHRIRScaling = &hqHRIRScaling[0];
             const int lastHRIR = numHRIRs-1;
             // end of the positional interps (only one that needs computation for realtime)
             interpolateHRIR(&posRAE[0], &hqHRIRs[lastHRIR*2*numTimeSteps]);
@@ -919,24 +920,12 @@ void PlayableSoundSource::processAudio(const float* in, const int N, float* out,
             // number of interps minus the endpoints which have already been interped!
             const int numInterps = numHRIRs-2;
             // positional data for blending
-            //float posX, posY, posZ;//, posRad, posAzi, posEle; // intermediate positions
             float posXYZ[3];
-            //std::array<float,3> pos_RAE;
             float pos_RAE[3];
-            //float posXCurrent, posYCurrent, posZCurrent;
-            //std::array<float,3> xyzCurrent;
             float xyzCurrent[3];
             RAEtoXYZ(&prevRAE[0], &xyzCurrent[0]);
-            //        const float posXCurrent = radPrev*std::sin(elePrev)*cos(aziPrev);
-            //        const float posYCurrent = radPrev*std::cos(elePrev);
-            //        const float posZCurrent = radPrev*sin(elePrev)*sin(aziPrev);
-            //float posXNext, posYNext, posZNext;
-            //std::array<float,3> xyzNext;
             float xyzNext[3];
             RAEtoXYZ(&posRAE[0], &xyzNext[0]);
-            //        const float posXNext = rad*sin(ele)*cos(azi);
-            //        const float posYNext = rad*cos(ele);
-            //        const float posZNext = rad*sin(ele)*sin(azi);
             const float oneOverNumInterpsP1 = 1.0/(numInterps+1);
             const float factorX = oneOverNumInterpsP1 * (xyzNext[0]-xyzCurrent[0]);
             const float factorY = oneOverNumInterpsP1 * (xyzNext[1]-xyzCurrent[1]);
@@ -949,17 +938,6 @@ void PlayableSoundSource::processAudio(const float* in, const int N, float* out,
                 posXYZ[2] = i * factorZ + xyzCurrent[2];
                 // convert back to spherical
                 XYZtoRAE(&posXYZ[0], &pos_RAE[0]);
-                //            posRad = std::sqrt(posX*posX + posY*posY + posZ*posZ);
-                //            if (posX < 0)
-                //                posAzi = std::atan(posZ/posX) + M_PI;
-                //            else
-                //                posAzi = std::atan(posZ/posX);
-                //            while (posAzi > 2.0*M_PI)
-                //                posAzi -= 2.0*M_PI;
-                //            while (posAzi < 0)
-                //                posAzi += 2.0*M_PI;
-                //            posEle = std::acos(posY/posRad);
-                //            interpolateHRIR(posRad, posAzi, posEle, &whichHRIRs[i*2*numTimeSteps]);
                 interpolateHRIR(pos_RAE, &hqHRIRs[i*2*numTimeSteps]);
                 // pre-convolution normalization
                 hqHRIRScaling[i*2] = hqHRIRScaling[i*2+1] = 0;
@@ -997,43 +975,43 @@ void PlayableSoundSource::processAudio(const float* in, const int N, float* out,
         prevRAE = posRAE;
     } // end if HRIRChange
     // load the current input
-    inputs[newInputIndex].load(in, N);
-    const int numInputs = inputs.size();
-    int buflengths = 0;
-    const int begin = (newInputIndex+1) % numInputs;
-    const int end = newInputIndex;
-    const int beginInputIndex = newInputIndex;
-    int inputsToProcess = 1;
-    for (int i = begin; i != end; i = (i+1) % numInputs) {
-        ++inputsToProcess;
-        buflengths += inputs[i].N;
-        if (inputs[i].N+numTimeSteps-1 <= buflengths) {
-            break;
-        }
-    }
-    //const int numInputsToProcess = inputsToProcess;
-    if (--newInputIndex < 0)
-        newInputIndex = numInputs - 1;
-//    inputs.insert(0, new Input(in, N));
-//    // remove any previous buffers that are no longer needed...
+	for (int n = 0; n < N; ++n) {
+		inputBuffer[inputBufferInPos] = in[n];
+		inputBufferInPos = (inputBufferInPos + 1) % inputBuffer.size();
+	}
+
+//	// old input inserting
+//    inputs[newInputIndex].load(in, N);
+//    const int numInputs = inputs.size();
 //    int buflengths = 0;
-//    for (int i = 1; i < inputs.size(); ++i) {
-//        buflengths += inputs[i]->N;
-//        if (inputs[i]->N+numTimeSteps-1 <= buflengths) {
-//            delete inputs[i];
-//            inputs.remove(i);
-//            --i;
+//    const int begin = (newInputIndex+1) % numInputs;
+//    const int end = newInputIndex;
+//    const int beginInputIndex = newInputIndex;
+//    int inputsToProcess = 1;
+//    for (int i = begin; i != end; i = (i+1) % numInputs) {
+//        ++inputsToProcess;
+//        buflengths += inputs[i].N;
+//        if (inputs[i].N+numTimeSteps-1 <= buflengths) {
+//            break;
 //        }
 //    }
+//    //const int numInputsToProcess = inputsToProcess;
+//    if (--newInputIndex < 0)
+//        newInputIndex = numInputs - 1;
+////    inputs.insert(0, new Input(in, N));
+////    // remove any previous buffers that are no longer needed...
+////    int buflengths = 0;
+////    for (int i = 1; i < inputs.size(); ++i) {
+////        buflengths += inputs[i]->N;
+////        if (inputs[i]->N+numTimeSteps-1 <= buflengths) {
+////            delete inputs[i];
+////            inputs.remove(i);
+////            --i;
+////        }
+////    }
+	
     // allocate final output array
     STACK_ARRAY(float, yfinal, N);
-//#ifdef WIN32
-//    float *yfinal = static_cast<float *>(alloca(N * sizeof(float)));
-//#else
-//    float yfinal[N];
-//#endif
-    //    // temp buffer for post-doppler, pre-hrir audio
-    //    float in[N];
     // process for each ear
     for (int ch = 0; ch < 2; ++ch) {
         // zero fill output array
@@ -1042,193 +1020,143 @@ void PlayableSoundSource::processAudio(const float* in, const int N, float* out,
             
         // blending hrirs in this buffer
         if (HRIRChange) {
-            // init array of outputs for each hrir chunk and each needed previous input's tail
-            const int N_max = Nmax;
-            float* ytemp = nullptr;
-            const int tempSize = numInputs*numHRIRs*(N_max+numTimeSteps-1);
-            STACK_ARRAY(float, y, realTime ? tempSize : 0);
-//        #ifdef WIN32
-            //float *y = static_cast<float *>(alloca((realTime ? tempSize : 0) * sizeof(float)));
-//        #else
-//            float y [realTime ? tempSize : 0];
-//        #endif
-            if (realTime) {
-				ytemp = &y[0];
-            } else {  // using new here to allocate on the heap instead of the stack which will likely overflow for numHRIRs = big number in the hq hrir interpolated non-realtime case
-                if (prevTempSize != tempSize) {
-                    prevTempSize = tempSize;
-                    delete[] temp;
-                    temp = new float[tempSize];
-                }
-                ytemp = &temp[0];
-                //ytemp = new float[tempSize];
-            }
-//            // hoping this fixes that rare and random fuzzing issue when source is moving, nope...
-//            for (int n = 0; n < tempSize; ++n)
-//                ytemp[n] = 0;
-            //float y [numInputs][numHRIRs][N_max+numTimeSteps-1];
-            //float ytemp [numInputs*numHRIRs*(N_max+numTimeSteps-1)];
-//            float *** y = new float**[inputs.size()];
-//            for (int i = 0; i < inputs.size(); ++i) {
-//                int L = inputs[i]->N+numTimeSteps-1;
-//                y[i] = new float*[numHRIRs];
-//                for (int j = 0; j < numHRIRs; ++j) {
-//                    y[i][j] = new float[L];
-//                    for (int n = 0; n < L; ++n) {
-//                        y[i][j][n] = 0;
-//                    }
-//                }
-//            }
-            // length of blending region (in samples) that blends between two consecutive interped hrirs
-            const float L = ((float)N) / ((float)(numHRIRs-1));
-            int beginIndex = 0, endIndex, thing, beginIndex2, endIndex2;
-            //for (int i = 0; i < inputs.size(); ++i) {
-            for (int k = 0, i = beginInputIndex; k < (const int)inputsToProcess; i = (i+1) % numInputs, ++k) {
-                //if (i != 0)
-                //    beginIndex += inputs[i]->N;
-                if (i != beginInputIndex)
-                    beginIndex += inputs[i].N;
-                // if the tail for this previous input goes up to or past the end of this current buffer
-                thing = inputs[i].N+numTimeSteps-1 - (N+beginIndex);
-                if (thing >= 0)
-                    endIndex = beginIndex + N-1;
-                else // otherwise the tail for this previous input ends somewhere in this current buffer
-                    endIndex = beginIndex + N-1 + thing;
-                // loop through each hrir and do the positional convolution chunks
-                for (int j = 0; j < numHRIRs-1; ++j) {
-                    // indexing for the hrir section of interest in terms of the respective input's indexing
-                    beginIndex2 = std::floor( ((float)j)*L + beginIndex );
-                    endIndex2 = std::ceil( ((float)(j+1))*L + beginIndex );
-                    // make sure to not go past the end of the convolution
-                    if (endIndex2 > endIndex)
-                        endIndex2 = endIndex;
-                    // make sure we even need to do the convolution for this positional hrir chunk
-                    if (beginIndex2 <= endIndex2) {
-                        convolve(&inputs[i].input[0], inputs[i].N,
-                                 &whichHRIRs[(j*2+ch)*numTimeSteps], numTimeSteps,
-                                 &ytemp[(i*numHRIRs+j)*(N_max+numTimeSteps-1)]/*y[i][j]*/, beginIndex2, endIndex2);
-						convolve(&inputs[i].input[0], inputs[i].N,
-								 &whichHRIRs[((j+1)*2+ch)*numTimeSteps], numTimeSteps,
-								 &ytemp[(i*numHRIRs+(j+1))*(N_max+numTimeSteps-1)]/*y[i][j+1]*/, beginIndex2, endIndex2);
-                    }
-                }
-            }
-            int j, c1, c2, offset;
-            for (int n = 0; n < N; ++n) {
-                // which hrir position chunk are we in
-                j = std::floor( ((float)n) / L );
-                // starts at 0.0 at multiples of L(frac) samples, goes up to ~< 1.0 at the sample before the next multiple
-                c2 = (((float)n) - ((float)j)*L) / L;
-                c1 = 1.0 - c2;
-                offset = 0;
-                //for (int i = 0; i < inputs.size(); ++i) {
-                for (int k = 0, i = beginInputIndex; k < (const int)inputsToProcess; i = (i+1) % numInputs, ++k) {
-                    //if (i != 0)
-                    //    offset += inputs[i]->N;
-                    if (i != beginInputIndex)
-                        offset += inputs[i].N;
-                    // don't want to exceed the bounds of the y[][][N+numtimesteps-1] array
-                    if (n+offset < inputs[i].N+numTimeSteps-1) {
-                        yfinal[n] += c1 * whichHRIRScaling[  j  *2+ch]
-                                        * ytemp[((i*numHRIRs+  j  )*(N_max+numTimeSteps-1))+(n+offset)]/*y[i][j][n+offset]*/
-                                   + c2 * whichHRIRScaling[(j+1)*2+ch]
-                                        * ytemp[((i*numHRIRs+(j+1))*(N_max+numTimeSteps-1))+(n+offset)]/*y[i][j+1][n+offset]*/;
-                    }
-                }
-            }
+            //// init array of outputs for each hrir chunk and each needed previous input's tail
+            //const int N_max = Nmax;
+            //float* ytemp = nullptr;
+            //const int tempSize = numInputs*numHRIRs*(N_max+numTimeSteps-1);
+            //STACK_ARRAY(float, y, realTime ? tempSize : 0);
+            //if (realTime) {
+            //    ytemp = &y[0];
+            //} else {  // using new here to allocate on the heap instead of the stack which will likely overflow for numHRIRs = big number in the hq hrir interpolated non-realtime case
+            //    if (prevTempSize != tempSize) {
+            //        prevTempSize = tempSize;
+            //        delete[] temp;
+            //        temp = new float[tempSize];
+            //    }
+            //    ytemp = &temp[0];
+            //}
+            //// length of blending region (in samples) that blends between two consecutive interped hrirs
+            //const float L = ((float)N) / ((float)(numHRIRs-1));
+            //int beginIndex = 0, endIndex, thing, beginIndex2, endIndex2;
+            //for (int k = 0, i = beginInputIndex; k < (const int)inputsToProcess; i = (i+1) % numInputs, ++k) {
+            //    if (i != beginInputIndex)
+            //        beginIndex += inputs[i].N;
+            //    // if the tail for this previous input goes up to or past the end of this current buffer
+            //    thing = inputs[i].N+numTimeSteps-1 - (N+beginIndex);
+            //    if (thing >= 0)
+            //        endIndex = beginIndex + N-1;
+            //    else // otherwise the tail for this previous input ends somewhere in this current buffer
+            //        endIndex = beginIndex + N-1 + thing;
+            //    // loop through each hrir and do the positional convolution chunks
+            //    for (int j = 0; j < numHRIRs-1; ++j) {
+            //        // indexing for the hrir section of interest in terms of the respective input's indexing
+            //        beginIndex2 = std::floor( ((float)j)*L + beginIndex );
+            //        endIndex2 = std::ceil( ((float)(j+1))*L + beginIndex );
+            //        // make sure to not go past the end of the convolution
+            //        if (endIndex2 > endIndex)
+            //            endIndex2 = endIndex;
+            //        // make sure we even need to do the convolution for this positional hrir chunk
+            //        if (beginIndex2 <= endIndex2) {
+            //            convolve(&inputs[i].input[0], inputs[i].N,
+            //                     &whichHRIRs[ ( j  *2+ch)*numTimeSteps], numTimeSteps,
+            //                     &ytemp[(i*numHRIRs+  j  )*(N_max+numTimeSteps-1)]/*y[i][j]*/  , beginIndex2, endIndex2);
+            //            convolve(&inputs[i].input[0], inputs[i].N,
+            //                     &whichHRIRs[((j+1)*2+ch)*numTimeSteps], numTimeSteps,
+            //                     &ytemp[(i*numHRIRs+(j+1))*(N_max+numTimeSteps-1)]/*y[i][j+1]*/, beginIndex2, endIndex2);
+            //        }
+            //    }
+            //}
+            //int j, c1, c2, offset;
+            //for (int n = 0; n < N; ++n) {
+            //    // which hrir position chunk are we in
+            //    j = std::floor( ((float)n) / L );
+            //    // starts at 0.0 at multiples of L(frac) samples, goes up to ~< 1.0 at the sample before the next multiple
+            //    c2 = (((float)n) - ((float)j)*L) / L;
+            //    c1 = 1.0 - c2;
+            //    offset = 0;
+            //    for (int k = 0, i = beginInputIndex; k < (const int)inputsToProcess; i = (i+1) % numInputs, ++k) {
+            //        if (i != beginInputIndex)
+            //            offset += inputs[i].N;
+            //        // don't want to exceed the bounds of the y[][][N+numtimesteps-1] array
+            //        if (n+offset < inputs[i].N+numTimeSteps-1) {
+            //            yfinal[n] += c1 * whichHRIRScaling[  j  *2+ch]
+            //                            * ytemp[((i*numHRIRs+  j  )*(N_max+numTimeSteps-1))+(n+offset)]/*y[i][j][n+offset]*/
+            //                       + c2 * whichHRIRScaling[(j+1)*2+ch]
+            //                            * ytemp[((i*numHRIRs+(j+1))*(N_max+numTimeSteps-1))+(n+offset)]/*y[i][j+1][n+offset]*/;
+            //        }
+            //    }
+            //}
+			convolve(&inputBuffer[0], inputBufferOutPos, inputBuffer.size(),
+					 &whichHRIRs[0], numTimeSteps, numHRIRs, &whichHRIRScaling[0], ch,
+				     &yfinal[0], N);
             // advance the HRIR scaling stuff
             HRIRScaling[0] = whichHRIRScaling[(numHRIRs-1)*2];
             HRIRScaling[1] = whichHRIRScaling[(numHRIRs-1)*2+1];
-            // free temporary output holding array
-//            if (!realTime) {
-//                delete[] ytemp;
-//            }
-            
-//            for (int i = inputs.size()-1; i >= 0; --i) {
-//                for (int j = numHRIRs-1; j >= 0; --j) {
-//                    delete[] y[i][j];
-//                }
-//                delete[] y[i];
-//            }
-//            delete[] y;
         } else { // no blending to do in this buffer as we are stationary
-            // do convolutions for all the inputs that are needed to render this buffers output
-            // note that begin and end indecies are refering to the previous buffer's indexing context, not the current buffer's
-            int beginIndex = 0, endIndex, thing;
-            //for (int i = 0; i < inputs.size(); ++i) {
-            for (int k = 0, i = beginInputIndex; k < (const int)inputsToProcess; i = (i+1) % numInputs, ++k) {
-                // intermediate output for each input buffer
-                STACK_ARRAY(float, y, inputs[i].N+numTimeSteps-1)
-//            #ifdef WIN32
-//                float *y = static_cast<float *>(alloca((inputs[i].N + numTimeSteps - 1) * sizeof(float)));
-//            #else
-//                float y[inputs[i].N+numTimeSteps-1];
-//            #endif
-                //if (i != 0)
-                //    beginIndex += inputs[i]->N;
-                if (i != beginInputIndex)
-                    beginIndex += inputs[i].N;
-                // if the tail for this previous input goes up to or past the end of this current buffer
-                thing = inputs[i].N+numTimeSteps-1 - (N+beginIndex);
-                if (thing >= 0)
-                    endIndex = beginIndex + N-1;
-                else // otherwise the tail for this previous input ends somewhere in this current buffer
-                    endIndex = beginIndex + N-1 + thing;
-                // do the convolution
-                convolve(&inputs[i].input[0], inputs[i].N, &HRIR[ch*numTimeSteps], numTimeSteps, y, beginIndex, endIndex);
-                for (int n = beginIndex; n <= endIndex; ++n)
-                    yfinal[n-beginIndex] += y[n] * HRIRScaling[ch];
-            }
+
+			convolve(&inputBuffer[0], inputBufferOutPos, inputBuffer.size(), 
+				     &HRIR[ch*numTimeSteps], numTimeSteps, HRIRScaling[ch],
+				     &yfinal[0], N);
+
+//            // do convolutions for all the inputs that are needed to render this buffers output
+//            // note that begin and end indecies are refering to the previous buffer's indexing context, not the current buffer's
+//            int beginIndex = 0, endIndex, thing;
+//            //for (int i = 0; i < inputs.size(); ++i) {
+//            for (int k = 0, i = beginInputIndex; k < (const int)inputsToProcess; i = (i+1) % numInputs, ++k) {
+//                // intermediate output for each input buffer
+//                STACK_ARRAY(float, y, inputs[i].N+numTimeSteps-1)
+////            #ifdef WIN32
+////                float *y = static_cast<float *>(alloca((inputs[i].N + numTimeSteps - 1) * sizeof(float)));
+////            #else
+////                float y[inputs[i].N+numTimeSteps-1];
+////            #endif
+//                //if (i != 0)
+//                //    beginIndex += inputs[i]->N;
+//                if (i != beginInputIndex)
+//                    beginIndex += inputs[i].N;
+//                // if the tail for this previous input goes up to or past the end of this current buffer
+//                thing = inputs[i].N+numTimeSteps-1 - (N+beginIndex);
+//                if (thing >= 0)
+//                    endIndex = beginIndex + N-1;
+//                else // otherwise the tail for this previous input ends somewhere in this current buffer
+//                    endIndex = beginIndex + N-1 + thing;
+//                // do the convolution
+//                convolve(&inputs[i].input[0], inputs[i].N, &HRIR[ch*numTimeSteps], numTimeSteps, y, beginIndex, endIndex);
+//                for (int n = beginIndex; n <= endIndex; ++n)
+//                    yfinal[n-beginIndex] += y[n] * HRIRScaling[ch];
+//            }
         }
-        
-//        // scale signal back up after convolution is performed
-//        if (ch == 0) {
-//            for (int n = 0; n < N; ++n)
-//                yfinal[n] *= scaleCh1;
-//        } else {
-//            for (int n = 0; n < N; ++n)
-//                yfinal[n] *= scaleCh2;
-//        }
-        
         // apply doppler effect
         if (dopplerOn) {
             STACK_ARRAY(float, yDoppler, N)
-//        #ifdef WIN32
-//            float *yDoppler = static_cast<float *>(alloca(N * sizeof(float)));
-//        #else
-//            float yDoppler[N];
-//        #endif
             float sourceXYZ[3];
             RAEtoXYZ(&posRAE[0], sourceXYZ);
             float earXYZ[3];
-            if (ch == 0) {
-                const float earRAE[3] {sphereRad,earAzimuth,earElevation};
-                RAEtoXYZ(earRAE, earXYZ);
-            } else {
-                const float earRAE[3] {sphereRad,-earAzimuth,earElevation};
-                RAEtoXYZ(earRAE, earXYZ);
-            }
-            const float dx = sourceXYZ[0]-earXYZ[0];
-            const float dy = sourceXYZ[1]-earXYZ[1];
-            const float dz = sourceXYZ[2]-earXYZ[2];
+			const float earRAE[3] {sphereRad, static_cast<float>(ch == 0 ? earAzimuth : -earAzimuth), earElevation};
+			RAEtoXYZ(earRAE, earXYZ);
+            const float dx = sourceXYZ[0] - earXYZ[0];
+            const float dy = sourceXYZ[1] - earXYZ[1];
+            const float dz = sourceXYZ[2] - earXYZ[2];
             const float earToSourceDistance = std::sqrt(dx*dx + dy*dy + dz*dz);
             if (earToSourceDistance > dopplerMaxDistance) {
                 // shouldn't happen that often, so reallocing here when necessary shouldn't cause any big problems
-                dopplerMaxDistance = earToSourceDistance * 2.0;
-                doppler[0].allocate(dopplerMaxDistance, Nmax, dopplerSpeedOfSound);
-                doppler[1].allocate(dopplerMaxDistance, Nmax, dopplerSpeedOfSound);
+                dopplerMaxDistance = earToSourceDistance * 2;
+                doppler[0].allocate(dopplerMaxDistance, Nmax, 0.1f/*dopplerSpeedOfSound*/);
+                doppler[1].allocate(dopplerMaxDistance, Nmax, 0.1f/*dopplerSpeedOfSound*/);
                 //dopplerMaxDistanceChanged = true;
             }
             doppler[ch].process(earToSourceDistance, N, yfinal, yDoppler);
             // package each channel's output into one dual-channel array
-            for (int n = 0; n < N; ++n)
-                out[ch*N+n] += yDoppler[n];
-        } else { // no doppler effect
-            // package each channel's output into one dual-channel array
-            for (int n = 0; n < N; ++n)
-                out[ch*N+n] += yfinal[n];
+			for (int n = 0; n < N; ++n)
+				out[ch*N + n] += yDoppler[n];
+		}
+		else { // no doppler effect
+			// package each channel's output into one dual-channel array
+			for (int n = 0; n < N; ++n)
+				out[ch*N + n] += yfinal[n];
         }
     } // end for each channel
+	inputBufferOutPos = (inputBufferOutPos + N) % inputBuffer.size();
     prevHRIRChange = HRIRChange;
     // set the state of movement so that the next buffer is stationary, which may change if we get an updated position from the gl side
     HRIRChange = false;

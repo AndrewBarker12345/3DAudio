@@ -1,25 +1,9 @@
-/*
- DrawInterpolator.h
- 
- Provides drawing functionality for Interpolaters.  See Interpolator.h.
- 
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+//
+//  DrawInterpolator.h
+//
+//  Created by Andrew Barker on 9/13/16.
+//
+//
 
 #ifndef DrawInterpolator_h
 #define DrawInterpolator_h
@@ -131,10 +115,9 @@ void draw(const ParametricInterpolator<T>* interp,
     
     glBegin(glMode);
     cauto numDimensions = interp->getNumDimensions();
-	//std::vector<float> pt (numDimensions);
-    STACK_ARRAY(float, pt, numDimensions);
-	for (auto t = begin; t < end; t += interval) {
-		if (interp->pointAt(t, &pt[0])) {
+    STACK_ARRAY(float, pt, numDimensions - 1);
+    for (auto t = begin; t < end; t += interval) {
+        if (interp->pointAt(t, pt)) {
             if (look.drawingMode == InterpolatorLook::TWO_D)
                 glVertex2f(pt[0], pt[1]);
             else
@@ -164,7 +147,6 @@ void draw(const FunctionalInterpolator<T>* interp,
     if (interval <= 0.0000001f)
         return; // avoid inf loop below
     const int numDimensions = interp->getNumDimensions();
-	//std::vector<float> pt (numDimensions - 1);
     STACK_ARRAY(float, pt, numDimensions-1);
     float x = begin;
     int splineIndex = 0;
@@ -191,7 +173,7 @@ AGAIN: // man this got complicated...
         if (++count > look.numVertices) // trying to avoid inf loop at all costs
             break;
         // only draw the dotted line over the portions that are not open/empty segments,
-        if (interp->pointAtSmart(x, &pt[0], splineIndex)) {
+        if (interp->pointAtSmart(x, pt, splineIndex)) {
             if (prevSplineIndex+2 <= splineIndex ? pts[prevSplineIndex+1][0] != pts[splineIndex][0] : true) {
                 if (look.drawingMode == InterpolatorLook::TWO_D)
                     glVertex2f(x, pt[look.dimensionsToDraw[1]-1]);
@@ -470,7 +452,7 @@ void drawPoints2D(const std::vector<SelectablePoint<T>>& points,
             if (!mouseOver)
                 state.prevMouseOvers[i] = false;
             glColour(color.withAlpha(1.0f));
-            drawCircle({x, y}, pixelsToNormalized(radius, window.height), 10, window.width / viewWidth, window.height);
+            drawCircle({x, y}, pixelsToNormalized(radius, window.height), 12, window.width / viewWidth, window.height);
         }
     }
     if (prevAntiAliasing == GL_FALSE)

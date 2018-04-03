@@ -1,25 +1,9 @@
-/*
- SelectionBox.h
- 
- Represents a rectangle that can select stuff, aka click and drag.
-
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+//
+//  SelectionBox.h
+//
+//  Created by Andrew Barker on 9/20/16.
+//
+//
 
 #ifndef SelectionBox_h
 #define SelectionBox_h
@@ -36,7 +20,8 @@ public:
     
     const Animation& getAnimation() const noexcept;
     Animation& getAnimation() noexcept;
-
+//    void setAnimation(const Animation& newAnimation) noexcept;
+    
     bool isActive() const noexcept;
     void setActive(bool active) noexcept;
     
@@ -45,10 +30,12 @@ private:
     Animation animation;
 };
 
+// can SelectionBox be used with contain(Box, Point<float>)?
 void draw (SelectionBox& box,
            const OpenGLWindow& window);
 void mouseDragged (SelectionBox& box,
                    const Point<float> mouseDown,
                    const Point<float> mouseCurrent) noexcept;
+//bool isDragging (const SelectionBox& box) noexcept;
 
 #endif /* SelectionBox_h */

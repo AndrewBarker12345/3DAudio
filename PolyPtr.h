@@ -1,8 +1,5 @@
 /*
- PolyPtr.h
- 
- A polymorphic smart pointer that deep copies.
- 
+ PolyPtr.h:  a polymorphic smart pointer that deep copies
  Copyright (C) 2016  Andrew Barker
  
  This program is free software: you can redistribute it and/or modify
@@ -19,7 +16,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+ */
 
 #ifndef PolyPtr_h
 #define PolyPtr_h

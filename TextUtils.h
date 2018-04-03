@@ -1,25 +1,10 @@
-/*
- TextUtils.h
- 
- An assortment of text GUI functionality and other GUI building blocks.
-
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+//
+//  TextUtils.h
+//  ThreeDAudio
+//
+//  Created by Andrew Barker on 3/2/16.
+//
+//
 
 #ifndef TextUtils_h
 #define TextUtils_h
@@ -575,7 +560,7 @@ protected:
     
     // nice to have hanging around because these can be comp intensive if they don't really need recomputing
     std::vector<std::string> lines;
-    Font font {"Arial", 16.0f, Font::FontStyleFlags::plain}; // specifing an arbitrary height here to avoid an uninitialized font which can lead to crashes (specifically when calling font.getHeight())
+    Font font {16.0f}; // specifing an arbitrary height here to avoid an uninitialized font which can lead to crashes (specifically when calling font.getHeight())
     
     //using TextBox::text;
 //public:
@@ -645,7 +630,8 @@ public:
     bool mouseClicked(const Point<float>& mousePosition) noexcept;
     bool mouseDoubleClicked();
     bool mouseDragged(const Point<float>& mouseDownPosition,
-                      const Point<float>& mouseCurrentPosition);
+                      const Point<float>& mouseCurrentPosition,
+                      bool sliderDragEnabled = true);
     bool mouseWheelMove(float dx, float dy) noexcept;
     bool keyPressed(const std::string& key);
     bool getMouseOver() const noexcept;

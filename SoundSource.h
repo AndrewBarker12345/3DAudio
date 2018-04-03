@@ -1,25 +1,28 @@
+//
+//  SoundSource.h
+//
+//  Created by Andrew Barker on 7/2/14.
+//
+//
 /*
- SoundSource.h
- 
- Represents a sound source at a 3d location in space that may have a path of motion that can play audio.
-
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+     3DAudio: simulates surround sound audio for headphones
+     Copyright (C) 2016  Andrew Barker
+     
+     This program is free software: you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published by
+     the Free Software Foundation, either version 3 of the License, or
+     (at your option) any later version.
+     
+     This program is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+     GNU General Public License for more details.
+     
+     You should have received a copy of the GNU General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+     
+     The author can be contacted via email at andrew.barker.12345@gmail.com.
+ */
 
 #ifndef __SoundSource__
 #define __SoundSource__
@@ -62,7 +65,7 @@ public:
     std::unique_ptr<Interpolator<float>> getInterpolator(const XmlElement& interpXML) const;
     // bounds checking for where the source/path pts can exist
     void boundsCheckRAE(std::array<float, 3>& rae, float& eleDirection) noexcept;
-    void boundsCheckRAE(float (&rae)[3], float& eleDirection);
+    void boundsCheckRAE(float (&rae)[3], float& eleDirection) noexcept;
     void boundsCheckXYZ(std::array<float, 3>& xyz);
     // control source position with rae coordinate
     void setPosRAE(std::array<float, 3>& rae);
@@ -217,6 +220,11 @@ private:
     std::vector<Input> inputs;
     int newInputIndex = 0;
     int Nmax = 0;
+	
+	std::vector<float> inputBuffer;
+	int inputBufferInPos = 0;
+	int inputBufferOutPos = 0;
+
     //Array<Input*> inputs;
     std::array<float,3> posRAE {1, 0, M_PI/2};
     // prev's needed for hrir blending
@@ -242,9 +250,11 @@ private:
     std::array<float, 2*numTimeSteps> HRIR {0};
     std::array<float, 4*numTimeSteps> HRIRs {0};
     float HRIRScaling[4] {1.0};
-    float* hqHRIRs = nullptr;
+	std::vector<float> hqHRIRs;
+	std::vector<float> hqHRIRScaling;
+    /*float* hqHRIRs = nullptr;
     float* hqHRIRScaling = nullptr;
-    float* temp = nullptr;
+    float* temp = nullptr;*/
     int prevTempSize = 0;
 //    // affects the degree to which the processing routine can smoothly blend between different hrirs at different positions
 //    bool realTime = true;

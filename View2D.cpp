@@ -1,25 +1,9 @@
-/*
- View2D.cpp
- 
- Represents a 2D, vertically/horizontally scrollable/zoomable view positioned within a holding box.
-
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+//
+//  View2D.cpp
+//
+//  Created by Andrew Barker on 9/21/16.
+//
+//
 
 #include "View2D.h"
 
@@ -40,12 +24,16 @@ View2D::View2D (Box* holder,
                 const BoundedValue<float>& height,
                 float xPosition, float xMin, float xMax,
                 float yPosition, float yMin, float yMax) noexcept
+//                const BoundedValue<float>& xOffset,
+//                const BoundedValue<float>& yOffset) noexcept
     : _holder    (holder),
       _boundary  (boundary),
       _width     (width),
       _height    (height),
       _xPosition (xPosition, std::min(xMin, xMax) + width  * 0.5f, std::max(xMin, xMax) - width  * 0.5f),
       _yPosition (yPosition, std::min(yMin, yMax) + height * 0.5f, std::max(yMin, yMax) - height * 0.5f)
+      //({xOffset, xOffset.getMin() + width  * 0.5f, xOffset.getMax() - width  * 0.5f}),
+      //({yOffset, yOffset.getMin() + height * 0.5f, yOffset.getMax() - height * 0.5f})
 {}
 
 const Box* View2D::getHolder () const noexcept { return _holder; }
@@ -104,8 +92,8 @@ float View2D::xMaxCurrent () const noexcept { return getXPosition() + getWidth()
 float View2D::yMinCurrent () const noexcept { return getYPosition() - getHeight() * 0.5f; }
 float View2D::yMaxCurrent () const noexcept { return getYPosition() + getHeight() * 0.5f; }
 
-float View2D::holderToViewX (float holderX) const noexcept { return (holderX - getBoundary().getLeft()) / getBoundary().width() * getWidth() + xMinCurrent(); }
-float View2D::holderToViewY (float holderY) const noexcept { return (holderY - getBoundary().getBottom()) / getBoundary().height() * getHeight() + yMinCurrent(); }
+float View2D::holderToViewX (float holderX) const noexcept { return (holderX - getBoundary().getLeft()) / getBoundary().width() * getWidth() + xMinCurrent()/*+ getXMin()*/; }
+float View2D::holderToViewY (float holderY) const noexcept { return (holderY - getBoundary().getBottom()) / getBoundary().height() * getHeight() + yMinCurrent() /*+ getYMin()*/; }
 Point<float> View2D::holderToView(const Point<float>& pt) const noexcept { return { holderToViewX(pt.x), holderToViewY(pt.y) }; }
 Box View2D::holderToView(const Box& b) const noexcept
 {
@@ -121,3 +109,33 @@ Box View2D::viewToHolder(const Box& b) const noexcept
     return { viewToHolderY(b.getTop()),  viewToHolderY(b.getBottom()),
              viewToHolderX(b.getLeft()), viewToHolderX(b.getRight()) };
 }
+
+//namespace View2DFuncs {
+//
+//float getX (const View2D& view,
+//            const float x) noexcept
+//{
+//    return x * 0.5f * view.width / view.xScale + view.xOffset;
+//}
+//
+//float getY (const View2D& view,
+//            const float y) noexcept
+//{
+//    return y * 0.5f * view.height / view.yScale + view.yOffset + view.height * 0.5f;
+//}
+//
+//Point<float> getPoint (const View2D& view,
+//                       const Point<float>& normalizedPoint) noexcept
+//{
+//    return { getX(view, normalizedPoint.x), getY(view, normalizedPoint.y) };
+//}
+//
+//Box getBox (const View2D& view,
+//            const Box& b) noexcept
+//{
+//    
+//    return { getY(view, b.getTop()), getY(view, b.getBottom()),
+//             getX(view, b.getLeft()), getX(view, b.getRight()) };
+//}
+//
+//}

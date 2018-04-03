@@ -1,25 +1,9 @@
-/*
- NonlinearInterpolator.h
- 
- Polymorphic curves ex:  y = a^x and x = log_a(y)
-
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+//
+//  NonlinearInterpolator.h
+//
+//  Created by Andrew Barker on 9/8/16.
+//
+//
 
 #ifndef NonlinearInterpolator_h
 #define NonlinearInterpolator_h
@@ -58,6 +42,7 @@ public:
                                const FloatingPointType max) const noexcept override
     {
         const auto range = max - min;
+        // if (base > 1)
         const auto normalizedValue = (linearValue - min) / range * (base - 1) + 1; // [1, base]
         return min + std::log(normalizedValue) / std::log(base) * range; // [min, max]
     }
@@ -74,5 +59,4 @@ public:
 private:
     FloatingPointType base;
 };
-
 #endif /* NonlinearInterpolator_h */

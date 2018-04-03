@@ -1,25 +1,28 @@
+//
+//  PluginEditor.cpp
+//
+//  Created by Andrew Barker on 4/26/14.
+//
+//
 /*
- PluginEditor.cpp
- 
- The shitshow of code that is 3DAudio's GUI.
-
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+     3DAudio: simulates surround sound audio for headphones
+     Copyright (C) 2016  Andrew Barker
+     
+     This program is free software: you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published by
+     the Free Software Foundation, either version 3 of the License, or
+     (at your option) any later version.
+     
+     This program is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+     GNU General Public License for more details.
+     
+     You should have received a copy of the GNU General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+     
+     The author can be contacted via email at andrew.barker.12345@gmail.com.
+ */
 
 #include "PluginEditor.h"
 #include "Functions.h"
@@ -32,23 +35,14 @@
 // the global hrir data that gets one instance across multiple plugin instances, this just references the one instance defined in PluginProcessor.cpp
 //extern float***** HRIRdata;
 //extern float**** HRIRdataPoles;
-#ifdef WIN32
-	static bool glutInited = false;
-#endif
+
 //==============================================================================
 ThreeDAudioProcessorEditor::ThreeDAudioProcessorEditor (ThreeDAudioProcessor* ownerFilter)
     : AudioProcessorEditor (ownerFilter)
 {
-//#ifdef WIN32
-//	// this ctor is getting called twice somehow on windows, and glutInit only likes being called once
-//	if (!glutInited) {
-//		char *myargv[1];
-//		int myargc = 1;
-//		myargv[0] = _strdup("");
-//		glutInit(&myargc, myargv);
-//		glutInited = true;
-//	}
-//#endif
+    // start 5 fps timer for updating the displayScale
+    startTimer(3, 1000.0f / 5.0f);
+    displayScale = Desktop::getInstance().getDisplays().getDisplayContaining (getScreenBounds().getCentre()).scale; // retina scaling change
     
     // keep a pointer to the processor (no longer necessary b/c getProcessor() is available in this class)
     processor = ownerFilter;
@@ -120,7 +114,7 @@ ThreeDAudioProcessorEditor::ThreeDAudioProcessorEditor (ThreeDAudioProcessor* ow
     loadHelpText();
     
     // set the eye's initial xyz position
-    axis3dTextLook.fontSize = 16;
+    axis3dTextLook.fontSize = 16 * displayScale;
     axis3dLabels[0] = TextBox("F", Box(), &axis3dTextLook);
     axis3dLabels[1] = TextBox("B", Box(), &axis3dTextLook);
     axis3dLabels[2] = TextBox("L", Box(), &axis3dTextLook);
@@ -167,7 +161,7 @@ ThreeDAudioProcessorEditor::ThreeDAudioProcessorEditor (ThreeDAudioProcessor* ow
 //    //etb.setTextInputRestrictor(std::make_unique<DecimalNumberRestrictor>(-10.032, 1001, 4));
     
     dopplerSliderTextLook.color = Colours::red;
-    dopplerSliderTextLook.fontSize = 16;
+    dopplerSliderTextLook.fontSize = 16 * displayScale;
     dopplerSlider.setTextInputRestrictor(std::make_unique<DecimalNumberRestrictor>(processor->minSpeedOfSound, processor->maxSpeedOfSound, 2, " m/s"));
     dopplerSlider.setInterpolator(std::make_unique<LogarithmicInterpolator<float>>(20.0f));
     //dopplerSlider.setUnits("m/s");
@@ -180,7 +174,7 @@ ThreeDAudioProcessorEditor::ThreeDAudioProcessorEditor (ThreeDAudioProcessor* ow
     //websiteMessage.setDrawMultiLine(true);
     
     TextLook dopplerAndHelpTextLook;
-    dopplerAndHelpTextLook.fontSize = 16;
+    dopplerAndHelpTextLook.fontSize = 16 * displayScale;
     dopplerAndHelpTextLook.horizontalPad = 0.9f;
     dopplerButton.setTextLook(dopplerAndHelpTextLook);
     dopplerButton.setColor(Colours::red);
@@ -191,7 +185,7 @@ ThreeDAudioProcessorEditor::ThreeDAudioProcessorEditor (ThreeDAudioProcessor* ow
     //helpButton.color = popsicleGreen;
     //helpButton.textBox.setColor(popsicleGreen);
     //PointLook pointLook;
-    pointLook.radius = 3;
+    pointLook.radius = 3 * displayScale;
     pointLook.mouseOverRadius = pointLook.radius * 1.2f;
     pointLook.color = Colour::fromFloatRGBA(0, 0, 1, 1);
     pointLook.selectedColor = Colour::fromFloatRGBA(1, 0, 0, 1);
@@ -199,7 +193,7 @@ ThreeDAudioProcessorEditor::ThreeDAudioProcessorEditor (ThreeDAudioProcessor* ow
     //mousePositionLook.fontName = "Good Times";
     //mousePositionLook.fontSize = 12;
     //positionerLook.just = Justification::centredLeft;
-    positionerLook.fontSize = 16;
+    positionerLook.fontSize = 16 * displayScale;
     positionerLook.horizontalPad = 1;
     positionerText.setLook(positionerLook);
     positionerText.setTextInputRestrictor(std::make_unique<PathAutomationInputRestrictor>());
@@ -211,24 +205,24 @@ ThreeDAudioProcessorEditor::ThreeDAudioProcessorEditor (ThreeDAudioProcessor* ow
 
     automationViewLowerTimeTextLook.just = Justification::centredLeft;
     automationViewLowerTimeTextLook.horizontalPad = 1;
-    automationViewLowerTimeTextLook.fontSize = 18;
+    automationViewLowerTimeTextLook.fontSize = 18 * displayScale;
     automationViewLowerTimeText.setLook(automationViewLowerTimeTextLook);
     
     automationViewUpperTimeTextLook.just = Justification::centredRight;
     automationViewUpperTimeTextLook.horizontalPad = 1;
-    automationViewUpperTimeTextLook.fontSize = 18;
+    automationViewUpperTimeTextLook.fontSize = 18 * displayScale;
     automationViewUpperTimeText.setLook(automationViewUpperTimeTextLook);
     
-    automationViewTimeTextLook.fontSize = 18;
+    automationViewTimeTextLook.fontSize = 18 * displayScale;
     automationViewTimeTextLook.color = Colour::fromFloatRGBA(0, 1, 0, 1);
     automationViewTimeText.setLook(automationViewTimeTextLook);
     
     sourcePositionerTextLook.color = Colour::fromFloatRGBA(0, 1, 0, 1);
-    sourcePositionerTextLook.fontSize = 16;
+    sourcePositionerTextLook.fontSize = 16 * displayScale;
     sourcePathPointPositionerTextLook.color = Colour::fromFloatRGBA(1, 1, 1, 1);
-    sourcePathPointPositionerTextLook.fontSize = 16;
+    sourcePathPointPositionerTextLook.fontSize = 16 * displayScale;
     
-    pathIndexTextLook.fontSize = 16;
+    pathIndexTextLook.fontSize = 16 * displayScale;
     //pathIndexTextLook.fontStyle = Font::bold;
     pathIndexTextLook.horizontalPad = 1;
     pathIndexSourceSelectAnimationLook = pathIndexSourceDeselectAnimationLook = pathIndexSelectedTextLook = pathIndexTextLook;
@@ -239,7 +233,7 @@ ThreeDAudioProcessorEditor::ThreeDAudioProcessorEditor (ThreeDAudioProcessor* ow
     
     resizePathPtsPrevState(); // gotta make space for this otherwise CRASH!!!
     
-    volumeSliderTextLook.fontSize = 16;
+    volumeSliderTextLook.fontSize = 16 * displayScale;
     volumeSlider.setup(Box(), TextBox("Volume", Box(), &volumeSliderTextLook),
                        EditableTextBox(TextBox("", Box(), &volumeSliderTextLook), &glWindow),
                        volumeSliderTextLook.color);
@@ -247,14 +241,13 @@ ThreeDAudioProcessorEditor::ThreeDAudioProcessorEditor (ThreeDAudioProcessor* ow
     volumeSlider.setInterpolator(std::make_unique<LogarithmicInterpolator<float>>(100.0f));
     volumeSlider.setValue(processor->wetOutputVolume + processor->dryOutputVolume);
     
-    mixSliderTextLook.fontSize = 16;
+    mixSliderTextLook.fontSize = 16 * displayScale;
     mixSlider.setup(Box(), TextBox("Mix", Box(), &mixSliderTextLook),
                     EditableTextBox(TextBox("", Box(), &mixSliderTextLook), &glWindow),
                     mixSliderTextLook.color);
     mixSlider.setTextInputRestrictor(std::make_unique<DecimalNumberRestrictor>(0.0f, 100.0f, 0, "%"));
-    mixSlider.setValue(100.0f * processor->wetOutputVolume / volumeSlider.getValue());
-
-    //setOpaque(true);
+    mixSlider.setValue(processor->savedMixValue);
+    //mixSlider.setValue(100.0f * processor->wetOutputVolume / std::max(volumeSlider.getValue(), 0.00001f/*avoid divide by 0*/));
 }
 
 ThreeDAudioProcessorEditor::~ThreeDAudioProcessorEditor()
@@ -279,6 +272,7 @@ ThreeDAudioProcessorEditor::~ThreeDAudioProcessorEditor()
         processor->eyeEle = eyeEle;
         processor->automationViewWidth = pathAutomationView.getWidth();
         processor->automationViewOffset = pathAutomationView.getXPosition();
+        processor->savedMixValue = mixSlider.getValue();// processor->wetOutputVolume / (processor->wetOutputVolume + processor->dryOutputVolume);
 //        processor->automationViewWidth = automationViewWidth;
 //        processor->automationViewOffset = automationViewOffset;
         //processor->displayState = displayState;
@@ -815,8 +809,8 @@ void ThreeDAudioProcessorEditor::drawMain()
         // ******** setup for entering selection mode ********
         const float w = getWidth();
         const float h = getHeight();
-        GLint mouse_x = getMouseXYRelative().getX();
-        GLint mouse_y = getMouseXYRelative().getY();
+        GLint mouse_x = getMouseXYRelative().getX() * displayScale; // retina scaling change
+        GLint mouse_y = getMouseXYRelative().getY() * displayScale;
         GLint viewport[4];
         
         glSelectBuffer(SELECT_BUF_SIZE, objSelectBuf);
@@ -1033,7 +1027,10 @@ void ThreeDAudioProcessorEditor::drawMain()
             cauto mouseOver = (s == mouseOverPathPointSourceIndex && j == mouseOverPathPointIndex)
                 || ((*sources)[s].getSourceSelected() && pointInsideSelectRegion({points[j][0], points[j][1], points[j][2]}));
             cauto selected = (*sources)[s].getPathPointSelected(j);
-            cauto id = s * 1000 + j; // if there is more than 1000 path pts for a source, well fuck just make spacing bigger!
+            cauto id = s * 1000 + j; // if there is more than 1000 path pts for a source, well just make spacing bigger!
+			//resizePathPtsPrevState();
+			prevMouseOverPathPts[s].resize(points.size());
+			prevSelectedPathPts[s].resize(points.size());
             bool prevMouseOver = prevMouseOverPathPts[s][j];
             bool prevSelected = prevSelectedPathPts[s][j];
             drawSelectableOrb({points[j][0], points[j][1], points[j][2]}, pathPtRadius, numSlices, numStacks, pathPtColor, mouseOverColor,
@@ -1631,7 +1628,7 @@ void ThreeDAudioProcessorEditor::drawPathControl()
     // draw the parametric position automation grid and its labels
     cauto dy = pixelsToNormalized(5, getHeight());// (1 - y_scale) * 0.15f;
     cauto dxp = pixelsToNormalized(5, getWidth());// normalizedXYConvert(dy, getHeight(), getWidth());
-    cauto dxm = pixelsToNormalized(6, getWidth());
+    cauto dxm = pixelsToNormalized(5, getWidth());
     glColor4f(1, 1, 1, 1);
     glBegin(GL_LINES);
     glVertex2f(-x_scale, -y_scale);
@@ -1776,7 +1773,7 @@ void ThreeDAudioProcessorEditor::drawPathControl()
                 if (processor->pathPosChanged /*|| prevAutomationViewWidth != automationViewWidth || prevAutomationViewOffset != automationViewOffset*/)
                     pathAutomationDisplayList[s] = 0;
                 InterpolatorLook look (pathPos, InterpolatorLook::TWO_D);
-                look.numVertices = 200;
+                look.numVertices = 500;
                 look.begin = pathAutomationView.getXPosition() - pathAutomationView.getWidth() * 0.5f / x_scale;
                 look.end = pathAutomationView.getXPosition() + pathAutomationView.getWidth() * 0.5f / x_scale;
                 look.beginColor = Colour::fromFloatRGBA(0.7f, 0.0f, 0.3f, 1.0f);
@@ -1966,6 +1963,8 @@ void ThreeDAudioProcessorEditor::drawPathControl()
                         y1 = parametricPos[0];
                     else
                         y1 = -1;
+					if (y1 != y1) // fix if nan
+						y1 = 0;
                     cauto y = y_scale * (2 * y1 - 1);
 //                    glColor3f(0, 1, 0);
 //                    glBegin(GL_LINES);
@@ -2260,6 +2259,8 @@ void ThreeDAudioProcessorEditor::drawLoopingRegion()
             const float temp = processor->loopRegionBegin;
             processor->loopRegionBegin.store(processor->loopRegionEnd);
             processor->loopRegionEnd = temp;
+			loopRegionBeginSelected = !loopRegionBeginSelected;
+			loopRegionEndSelected = !loopRegionEndSelected;
         }
     }
     
@@ -2325,9 +2326,9 @@ void ThreeDAudioProcessorEditor::drawLoopingRegion()
         glLineWidth(1.5f);
         const auto arrowAlpha = mouseOverLoopRegionBegin ? loopRegionBeginAnimation.getProgress() : loopRegionEndAnimation.getProgress();
         const auto dxpx = (loopRegionBeginSelected || loopRegionEndSelected) ? 6 - 4 * loopRegionSelectAnimation.getProgress() : 2 + 4 * loopRegionSelectAnimation.getProgress();
-        const auto dx = pixelsToNormalized(dxpx, glWindow.width) * arrowAlpha;
-        const auto l = pixelsToNormalized(8, glWindow.width);
-        const auto h = pixelsToNormalized(2, glWindow.height);
+        const auto dx = pixelsToNormalized(dxpx, getWidth()) * arrowAlpha;
+        const auto l = pixelsToNormalized(8, getWidth());
+        const auto h = pixelsToNormalized(2, getHeight());
         glColor4ub(101, 255, 145, 255 * arrowAlpha);
         glBegin(GL_LINES);
         glVertex2f(mouseOverLoopBoarderX - dx, mouse_y);
@@ -2501,20 +2502,20 @@ void ThreeDAudioProcessorEditor::myResized()
     
     // adjust tabs boundary
     b = tabs.getBoundary();
-    b.setTop(1 - pixelsToNormalized(1, glWindow.height));
-    b.setBottom(b.getTop() - pixelsToNormalized(20, glWindow.height) / tabs.getSelectedTextLook().verticalPad);
+    b.setTop(1 - pixelsToNormalized(1, getHeight()));// glWindow.height)); // retina scaling change
+    b.setBottom(b.getTop() - pixelsToNormalized(20, getHeight()/*glWindow.height*/) / tabs.getSelectedTextLook().verticalPad);
     tabs.setBoundary(b);
     
     cauto font = dopplerButton.getTextLook().getFontWithSize(16).boldened();
-    cauto dopplerWidth = pixelsToNormalized(font.getStringWidthFloat(dopplerButton.getText()) / dopplerButton.getTextLook().horizontalPad, glWindow.width);
-    auto top = b.getBottom() - pixelsToNormalized(3, glWindow.height);
-    auto right = 1 - pixelsToNormalized(1, glWindow.width);
+    cauto dopplerWidth = pixelsToNormalized(font.getStringWidthFloat(dopplerButton.getText()) / dopplerButton.getTextLook().horizontalPad, getWidth()/*glWindow.width*/);
+    auto top = b.getBottom() - pixelsToNormalized(3, getHeight()/*glWindow.height*/);
+    auto right = 1 - pixelsToNormalized(1, getWidth()/*glWindow.width*/);
     auto left = right - dopplerWidth;
-    b = {top, top - pixelsToNormalized(16, glWindow.height) / helpButton.getTextLook().verticalPad,
+    b = {top, top - pixelsToNormalized(16, getHeight()/*glWindow.height*/) / helpButton.getTextLook().verticalPad,
          left, right};
     helpButton.setBoundary(b);
-    top = b.getBottom() - pixelsToNormalized(2, glWindow.height);
-    b.setBottom(top - pixelsToNormalized(16, glWindow.height) / dopplerButton.getTextLook().verticalPad);
+    top = b.getBottom() - pixelsToNormalized(2, getHeight()/*glWindow.height*/);
+    b.setBottom(top - pixelsToNormalized(16, getHeight()/*glWindow.height*/) / dopplerButton.getTextLook().verticalPad);
     b.setTop(top);
     dopplerButton.setBoundary(b);
     
@@ -2522,44 +2523,44 @@ void ThreeDAudioProcessorEditor::myResized()
     cauto volumeAndMixSliderHeight = 0.5f * (b.getBottom() + 1
                                      - pixelsToNormalized(55, getHeight()) // doppler slider height
                                      - 3*pixelsToNormalized(gapHeight, getHeight())
-                                     - 4*pixelsToNormalized(volumeSliderTextLook.fontSize / volumeSliderTextLook.verticalPad, getHeight()));
-    top = b.getBottom() - pixelsToNormalized(10, glWindow.height);
-    b.setBottom(top - pixelsToNormalized(volumeSliderTextLook.fontSize / volumeSliderTextLook.verticalPad, glWindow.height));
+                                     - 4*pixelsToNormalized(volumeSliderTextLook.fontSize / volumeSliderTextLook.verticalPad, getHeight()*displayScale));
+    top = b.getBottom() - pixelsToNormalized(10, getHeight()/*glWindow.height*/);
+    b.setBottom(top - pixelsToNormalized(volumeSliderTextLook.fontSize / volumeSliderTextLook.verticalPad, getHeight()*displayScale/*glWindow.height*/));
     b.setTop(top);
     volumeSlider.getTitleTextBox().setBoundary(b);
     
-    auto sliderLeft = right - dopplerWidth * 0.6666666f;
-    auto sliderRight = right - dopplerWidth * 0.3333333f;
+    auto sliderLeft = right - dopplerWidth * 0.66666666f;
+    auto sliderRight = right - dopplerWidth * 0.33333333f;
     b.setLeft(sliderLeft);
     b.setRight(sliderRight);
-    top = b.getBottom() - pixelsToNormalized(4, glWindow.height);
+    top = b.getBottom() - pixelsToNormalized(4, getHeight()/*glWindow.height*/);
     b.setBottom(top - volumeAndMixSliderHeight);
     b.setTop(top);
     volumeSlider.setSliderBoundary(b);
     
-    b.setLeft(left + pixelsToNormalized(2, glWindow.width));
-    b.setRight(right - pixelsToNormalized(2, glWindow.width));
-    top = b.getBottom() - pixelsToNormalized(4, glWindow.height);
-    b.setBottom(top - pixelsToNormalized(volumeSliderTextLook.fontSize / volumeSliderTextLook.verticalPad, glWindow.height));
+    b.setLeft(left + pixelsToNormalized(2, getWidth()/*glWindow.width*/));
+    b.setRight(right - pixelsToNormalized(2, getWidth()/*glWindow.width*/));
+    top = b.getBottom() - pixelsToNormalized(4, getHeight()/*glWindow.height*/);
+    b.setBottom(top - pixelsToNormalized(volumeSliderTextLook.fontSize / volumeSliderTextLook.verticalPad, getHeight()*displayScale/*glWindow.height*/));
     b.setTop(top);
     volumeSlider.getValueTextBox().setBoundary(b);
 
-    top = b.getBottom() - pixelsToNormalized(10, glWindow.height);
-    b.setBottom(top - pixelsToNormalized(mixSliderTextLook.fontSize / mixSliderTextLook.verticalPad, glWindow.height));
+    top = b.getBottom() - pixelsToNormalized(10, getHeight()/*glWindow.height*/);
+    b.setBottom(top - pixelsToNormalized(mixSliderTextLook.fontSize / mixSliderTextLook.verticalPad, getHeight()*displayScale/*glWindow.height*/));
     b.setTop(top);
     mixSlider.getTitleTextBox().setBoundary(b);
     
     b.setLeft(sliderLeft);
     b.setRight(sliderRight);
-    top = b.getBottom() - pixelsToNormalized(4, glWindow.height);
+    top = b.getBottom() - pixelsToNormalized(4, getHeight()/*glWindow.height*/);
     b.setBottom(top - volumeAndMixSliderHeight);
     b.setTop(top);
     mixSlider.setSliderBoundary(b);
     
-    b.setLeft(left + pixelsToNormalized(2, glWindow.width));
-    b.setRight(right - pixelsToNormalized(2, glWindow.width));
-    top = b.getBottom() - pixelsToNormalized(4, glWindow.height);
-    b.setBottom(top - pixelsToNormalized(mixSliderTextLook.fontSize / mixSliderTextLook.verticalPad, glWindow.height));
+    b.setLeft(left + pixelsToNormalized(2, getWidth()/*glWindow.width*/));
+    b.setRight(right - pixelsToNormalized(2, getWidth()/*glWindow.width*/));
+    top = b.getBottom() - pixelsToNormalized(4, getHeight()/*glWindow.height*/);
+    b.setBottom(top - pixelsToNormalized(mixSliderTextLook.fontSize / mixSliderTextLook.verticalPad, getHeight()*displayScale/*glWindow.height*/));
     b.setTop(top);
     mixSlider.getValueTextBox().setBoundary(b);
     
@@ -2571,12 +2572,12 @@ void ThreeDAudioProcessorEditor::myResized()
 //    dopplerSlider.getValueTextBox().setBoundary(dopplerValueBox);
 {
     auto bottom = -1 + pixelsToNormalized(3, getHeight());
-    auto top = bottom + pixelsToNormalized(dopplerSliderTextLook.fontSize / dopplerSliderTextLook.verticalPad, getHeight());
+    auto top = bottom + pixelsToNormalized(dopplerSliderTextLook.fontSize / dopplerSliderTextLook.verticalPad, getHeight()*displayScale);
     dopplerTitleBox.setBottom(bottom);
     dopplerTitleBox.setTop(top);
     dopplerValueBox.setBottom(bottom);
     dopplerValueBox.setTop(top);
-    dopplerSlider.horizontallyCenterAndRepositionText(dopplerTitleBox, dopplerValueBox, glWindow.width, glWindow.height, 0);
+    dopplerSlider.horizontallyCenterAndRepositionText(dopplerTitleBox, dopplerValueBox, getWidth()*displayScale/*glWindow.width*/, getHeight()*displayScale/*glWindow.height*/, 0);
     bottom = top - pixelsToNormalized(5, getHeight());
     top = bottom + pixelsToNormalized(20, getHeight());
     auto left = -1 + pixelsToNormalized(30, getWidth());
@@ -2595,22 +2596,22 @@ void ThreeDAudioProcessorEditor::myResized()
 //    dopplerButton.setTextLook(dopplerLook);
 
 {
-    cauto fontSize = 25;
+    cauto fontSize = 25*displayScale;
     processingModeOptions.setFontSize(fontSize);
     float len = 0;
     for (const auto& b : processingModeOptions.getTextBoxes())
-        len += pixelsToNormalized(b.getTextLength(glWindow.width, glWindow.height), glWindow.width);
+        len += pixelsToNormalized(b.getTextLength(getWidth(), getHeight()/*glWindow.width, glWindow.height*/), getWidth()*displayScale/*glWindow.width*/);
     len /= processingModeNormalLook.horizontalPad;
     auto top = tabs.getBoundary().getBottom() - pixelsToNormalized(30, getHeight());
-    auto bottom = top - pixelsToNormalized(fontSize / processingModeNormalLook.verticalPad, getHeight());
+    auto bottom = top - pixelsToNormalized(fontSize / processingModeNormalLook.verticalPad, getHeight()*displayScale);
     auto left = -len * 0.5f;
     auto right = len * 0.5f;
     processingModeOptions.setBoundary({top, bottom, left, right});
     
-    processingModeHelpLook.fontSize = 18;
+    processingModeHelpLook.fontSize = 18*displayScale;
     processingModeHelp.setLook(&processingModeHelpLook);
     top = bottom - pixelsToNormalized(10, getHeight());
-    bottom = top - pixelsToNormalized(20 * processingModeHelpLook.fontSize, getHeight());
+    bottom = top - pixelsToNormalized(20 * processingModeHelpLook.fontSize, getHeight()*displayScale);
     left = -1 + pixelsToNormalized(50, getWidth());
     right = -left;
     processingModeHelp.setBoundary({top, bottom, left, right});
@@ -2650,7 +2651,7 @@ void ThreeDAudioProcessorEditor::updatePositioner3DTextValueAndPosition() {
             xyz = {vxyz[0], vxyz[1], vxyz[2]};
             cauto b = pathIndexTexts[positionerText3DID.sourceIndex][positionerText3DID.pathPtIndex]->getBoundary();
             xy[0] = b.centerX();
-            xy[1] = b.getTop() + pixelsToNormalized(3, glWindow.height);
+            xy[1] = b.getTop() + pixelsToNormalized(3, getHeight());
         } else if (positionerText3DID.sourceIndex >= 0) {
             xyz = (*sources)[positionerText3DID.sourceIndex].getPosXYZ();
             if (!to2D({xyz[0], xyz[1], xyz[2]}, xy))
@@ -2674,7 +2675,7 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
     if (!isShowing()) // no need to draw if window is not visible
         return;
     // need to synchronize data that is accessed for rendering from edits that happen on the message thread through click, keypress, ect. callbacks
-	const std::lock_guard<decltype(glLock)> lockGL (glLock); // caused deadlock/crash issues with the blocking lock in resized(), so got rid of the one in resized()
+    const std::lock_guard<std::mutex> lockGL (decltype(glLock)); // caused deadlock/crash issues with the blocking lock in resized(), so got rid of the one in resized()
 //    const std::unique_lock<std::mutex> lockGL (glLock);  // this causes huge stutters in GUI's rendering, especially in Tracktion
 //    if (!lockGL.owns_lock())
 //        return;
@@ -2682,8 +2683,8 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
     // for Windows we gotta reset this for every frame (just doing it in resized() don't work for some reason...)
 //#ifdef WIN32
     // just resize the proj matrix here b/c doing it in resize requires locking to synchronize the gl and juce message threads
-    const int w = getWidth();
-    const int h = getHeight();
+    const int w = getWidth() * displayScale; // retina scaling change
+    const int h = getHeight() * displayScale;
     // Tell OpenGL how to convert from coordinates to pixel values
     glViewport(0, 0, w, h);
     // Switch to setting the camera perspective
@@ -2721,7 +2722,7 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
             reindexPathIndexTexts();
             tryHidePositioner3D();
             //updatePositioner3DTextValueAndPosition();
-//            processor->presetJustLoaded = false;
+            processor->presetJustLoaded = false;
         }
         
         // reset this stuff for detecting mouse over selectable objects so it has to be reset during this render cycle for there to be any action on those selectable objects
@@ -2756,6 +2757,12 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
+        // added to prevent blank text from apprearing when plugin window is opened and the volume and mix sliders are set to zero
+        if (volumeSlider.getValueTextBox().getText() == "")
+            volumeSlider.setTextValue(volumeSlider.getValue());
+        if (mixSlider.getValueTextBox().getText() == "")
+            mixSlider.setTextValue(mixSlider.getValue());
+        
         switch (processor->displayState) {
             case DisplayState::MAIN:
                 drawMain();
@@ -2775,6 +2782,7 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
                 glLoadIdentity();
                 glDisable(GL_DEPTH_TEST);   // either GL_DEPTH_TEST or GL_CULL_FACE seem to work
                 
+                processingModeOptions.setSelected((int)processor->processingMode.load(), false); // make sure processing mode is displayed correctly
                 processingModeOptions.setAutoDetected(processor->isHostRealTime ? 0 : 1);
                 processingModeOptions.draw(glWindow, mousePos);
                 glColor3f(1, 1, 1);
@@ -2831,11 +2839,14 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
                                           && !pathAutomationPointsGrabbedWithMouse;
             dopplerButton.draw(glWindow, mousePos);
             
-            if (processor->presetJustLoaded) {
-                // these are to update slider values if a preset is loaded and changes the values
-                volumeSlider.setValue(processor->wetOutputVolume + processor->dryOutputVolume);
-                mixSlider.setValue(100.0f * processor->wetOutputVolume / volumeSlider.getValue());
-            }
+            // these are to update slider values if a preset is loaded and changes the values
+            cauto newVolVal = processor->wetOutputVolume + processor->dryOutputVolume;
+            if (std::abs(newVolVal - volumeSlider.getValue()) > 0.001f) // don't reset the volumeSlider value and therefor trigger value set animation unless the value changes significantly
+                volumeSlider.setValue(newVolVal);
+            //volumeSlider.setValue(processor->wetOutputVolume + processor->dryOutputVolume);
+            cauto newMixVal = 100.0f * processor->wetOutputVolume / std::max(volumeSlider.getValue(), 0.00001f/*avoid div by 0*/);
+            if (std::abs(newMixVal - mixSlider.getValue()) > 0.1f && volumeSlider.getValue() > 0) // don't reset the mixSlider value and therefor trigger value set animation unless the value changes significantly and the
+                mixSlider.setValue(newMixVal);
             
             volumeSlider.draw(glWindow, mousePos, mouseOverEnabled);
             mixSlider.draw(glWindow, mousePos, mouseOverEnabled);
@@ -2900,8 +2911,6 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
         myMouseMoved();
     
     glWindow.saveResized();
-    
-    processor->presetJustLoaded = false;
 }
 
 
@@ -2909,10 +2918,9 @@ void ThreeDAudioProcessorEditor::timerCallback(const int timerID)
 {
     // made GL rendering jerky and slow, probably not necessary
     //const std::lock_guard<std::mutex> lockGL (glLock);
-    
     switch (timerID) {
         case 0: // tell the gl to repaint the scene on the interval that timer0 is set to
-            if (processor != nullptr /*&& glInited*/) {
+            if (processor != nullptr) {
                 openGLContext.triggerRepaint();
             }
             //repaint(); to call JUCE Component::paint()
@@ -2935,6 +2943,12 @@ void ThreeDAudioProcessorEditor::timerCallback(const int timerID)
         case 2: // timer2 is for increasing speed of arrow key controls (adjusted in keyPressed()) if they are held down
             stopTimer(2);
             arrowKeySpeedFactor = initialArrowKeySpeedFactor;
+            break;
+        case 3:
+            {
+            //const MessageManagerLock messageLock;
+            displayScale = Desktop::getInstance().getDisplays().getDisplayContaining (getScreenBounds().getCentre()).scale; // retina scaling change
+            }
             break;
         default:
             break;
@@ -2975,8 +2989,8 @@ void ThreeDAudioProcessorEditor::positionerTextMouseMoved(const bool forceRefres
             const auto ptMouseIsOver = (*sources)[pathAutomationPointEditableTextIndex[0]].getPathPosPtr()->getPoint(pathAutomationPointEditableTextIndex[1]);
             tVal = ptMouseIsOver[0];
             yVal = ptMouseIsOver[1];
-            x = x_scale*((tVal+thing1)*thing2-1) + pixelsToNormalized(10, glWindow.width);
-            y = y_scale*(yVal*2-1) + pixelsToNormalized(3, glWindow.height);
+            x = x_scale*((tVal+thing1)*thing2-1) + pixelsToNormalized(10, getWidth());
+            y = y_scale*(yVal*2-1) + pixelsToNormalized(3, getHeight());
             positionerLook.fontStyle = Font::FontStyleFlags::bold;
             positionerLook.color = Colour::fromFloatRGBA(1, 0, 0, 1);
             positionerTextDrawEditable = true;
@@ -2989,8 +3003,8 @@ void ThreeDAudioProcessorEditor::positionerTextMouseMoved(const bool forceRefres
             }
             tVal = ptMouseIsOver[0];
             yVal = ptMouseIsOver[1];
-            x = x_scale * ((tVal + thing1) * thing2 - 1) + pixelsToNormalized(10, glWindow.width);
-            y = y_scale * (yVal * 2 - 1) + pixelsToNormalized(3, glWindow.height);
+            x = x_scale * ((tVal + thing1) * thing2 - 1) + pixelsToNormalized(10, getWidth());
+            y = y_scale * (yVal * 2 - 1) + pixelsToNormalized(3, getHeight());
             positionerLook.fontStyle = Font::FontStyleFlags::bold;
             positionerTextDrawEditable = true;
         } else if (processor->loopingEnabled && (mouseOverLoopRegionBegin || loopRegionBeginSelected
@@ -3003,9 +3017,9 @@ void ThreeDAudioProcessorEditor::positionerTextMouseMoved(const bool forceRefres
                 tVal = processor->loopRegionBegin;
             else if (loopRegionEndHasPositionerTextFocus || mouseOverLoopRegionEnd)
                 tVal = processor->loopRegionEnd;
-            x = x_scale*((tVal+thing1)*thing2-1) + pixelsToNormalized(10, glWindow.width);
+            x = x_scale*((tVal+thing1)*thing2-1) + pixelsToNormalized(10, getWidth());
             if (!(loopRegionBeginHasPositionerTextFocus || loopRegionEndHasPositionerTextFocus) || forceRefreshText)
-                y = m_y + pixelsToNormalized(3, glWindow.height);
+                y = m_y + pixelsToNormalized(3, getHeight());
             else
                 y = positionerText.getBoundary().getBottom();
             positionerLook.fontStyle = Font::FontStyleFlags::bold;
@@ -3020,8 +3034,8 @@ void ThreeDAudioProcessorEditor::positionerTextMouseMoved(const bool forceRefres
                 yVal = 1;
             if (tVal < 0)
                 tVal = 0;
-            x = m_x + pixelsToNormalized(10, glWindow.width);
-            y = m_y + pixelsToNormalized(3, glWindow.height);
+            x = m_x + pixelsToNormalized(10, getWidth());
+            y = m_y + pixelsToNormalized(3, getHeight());
             positionerLook.fontStyle = Font::FontStyleFlags::plain;
         }
         positionerText.setLook(positionerLook);
@@ -3033,10 +3047,10 @@ void ThreeDAudioProcessorEditor::positionerTextMouseMoved(const bool forceRefres
             }
             positionerText.setText(text);
         }
-        Box b {y + pixelsToNormalized(positionerText.getLook()->fontSize, glWindow.height) / positionerText.getLook()->verticalPad,
+        Box b {y + pixelsToNormalized(positionerText.getLook()->fontSize, getHeight()*displayScale) / positionerText.getLook()->verticalPad,
                y, x, std::numeric_limits<float>::infinity()};
-        cauto font = positionerLook.getFont(positionerText.getText(), b, glWindow.width, glWindow.height);
-        b.setRight(x + pixelsToNormalized(font.getStringWidthFloat(positionerText.getText()) + 4, glWindow.width));
+        cauto font = positionerLook.getFont(positionerText.getText(), b, getWidth(), getHeight());
+        b.setRight(x + pixelsToNormalized(font.getStringWidthFloat(positionerText.getText()) + 4, getWidth()*displayScale));
         positionerText.minimumWidth = 0; // so that boundary width will be set to the text length
         positionerText.setBoundary(b);
         boundsCheckPositionerText();
@@ -3082,7 +3096,7 @@ void ThreeDAudioProcessorEditor::adjustSoVisible(Box& b) noexcept
 
 void ThreeDAudioProcessorEditor::mouseEnter(const MouseEvent & event)
 {
-	const std::lock_guard<decltype(glLock)> lockGL (glLock);
+    const std::lock_guard<decltype(glLock)> lockGL (glLock);
     switch (processor->displayState) {
         case DisplayState::MAIN:
             break;
@@ -3097,7 +3111,7 @@ void ThreeDAudioProcessorEditor::mouseEnter(const MouseEvent & event)
 
 void ThreeDAudioProcessorEditor::mouseExit(const MouseEvent & event)
 {
-	const std::lock_guard<decltype(glLock)> lockGL (glLock);
+    const std::lock_guard<decltype(glLock)> lockGL (glLock);
     switch (processor->displayState) {
         case DisplayState::MAIN:
             break;
@@ -3108,6 +3122,7 @@ void ThreeDAudioProcessorEditor::mouseExit(const MouseEvent & event)
         case DisplayState::SETTINGS:
             break;
     }
+    //mouseOverWindowAnimation.restart();
 }
 
 void ThreeDAudioProcessorEditor::myMouseMoved()
@@ -3191,31 +3206,45 @@ void ThreeDAudioProcessorEditor::mouseMove(const MouseEvent & event)
 
 void ThreeDAudioProcessorEditor::mouseDrag(const MouseEvent& event)
 {
-	const std::lock_guard<decltype(glLock)> lockGL (glLock);
+    const std::lock_guard<decltype(glLock)> lockGL (glLock);
     
 //    const float mouse_x = getMouseX();
 //    const float mouse_y = getMouseY();
 //    
-    cauto mouseDown = pixelsToNormalized(event.getMouseDownPosition(), glWindow.width, glWindow.height);
-    cauto mouseCurrent = pixelsToNormalized(event.getPosition(), glWindow.width, glWindow.height);
+    cauto mouseDown = pixelsToNormalized(event.getMouseDownPosition(), getWidth(), getHeight());//glWindow.width, glWindow.height); // retina scaling change
+    cauto mouseCurrent = pixelsToNormalized(event.getPosition(), getWidth(), getHeight());//glWindow.width, glWindow.height);
     
     if (processor->displayState == DisplayState::MAIN) {
         if (positionerText3DID.sourceIndex != -1 && positionerText3DID.pathPtIndex != -1 &&
             ((EditableTextBox*)(pathIndexTexts[positionerText3DID.sourceIndex][positionerText3DID.pathPtIndex].get()))->mouseDragged(mouseDown, mouseCurrent))
         {}
         else if (positionerText3D.mouseDragged(mouseDown, mouseCurrent)) {}
-        else if (dopplerSlider.mouseDragged(mouseDown, mouseCurrent)) {}
-        else if (volumeSlider.mouseDragged(mouseDown, mouseCurrent)) {}
-        else if (mixSlider.mouseDragged(mouseDown, mouseCurrent)) {}
+        else if (processor->dopplerOn && dopplerSlider.mouseDragged(mouseDown, mouseCurrent/*, false*/)) { // don't allow doppler slider drag because smoothly blending the processing is not supported
+            processor->setSpeedOfSound(dopplerSlider.getValue());
+        } else if (volumeSlider.mouseDragged(mouseDown, mouseCurrent)) {
+            cauto v = 0.01f * mixSlider.getValue();
+            processor->wetOutputVolume = v * volumeSlider.getValue();
+            processor->dryOutputVolume = (1 - v) * volumeSlider.getValue();
+        } else if (mixSlider.mouseDragged(mouseDown, mouseCurrent)) {
+            cauto v = 0.01f * mixSlider.getValue();
+            processor->wetOutputVolume = v * volumeSlider.getValue();
+            processor->dryOutputVolume = (1 - v) * volumeSlider.getValue();
+        }
         else if (event.getDistanceFromDragStart() > 3)  //true; (this used to work when mouseDrag() was not called before any old mouseUp() event, prior to JUCE 4)
         {
             mouseDragged(selectionBox, mouseDown, mouseCurrent);
         }
     } else if (processor->displayState == DisplayState::PATH_AUTOMATION) {
         if (positionerText.mouseDragged(mouseDown, mouseCurrent)) {}
-        else if (volumeSlider.mouseDragged(mouseDown, mouseCurrent)) {}
-        else if (mixSlider.mouseDragged(mouseDown, mouseCurrent)) {}
-        else if (event.getDistanceFromDragStart() > 3  //true; (this used to work when mouseDrag() was not called before any old mouseUp() event, prior to JUCE 4)
+        else if (volumeSlider.mouseDragged(mouseDown, mouseCurrent)) {
+            cauto v = 0.01f * mixSlider.getValue();
+            processor->wetOutputVolume = v * volumeSlider.getValue();
+            processor->dryOutputVolume = (1 - v) * volumeSlider.getValue();
+        } else if (mixSlider.mouseDragged(mouseDown, mouseCurrent)) {
+            cauto v = 0.01f * mixSlider.getValue();
+            processor->wetOutputVolume = v * volumeSlider.getValue();
+            processor->dryOutputVolume = (1 - v) * volumeSlider.getValue();
+        } else if (event.getDistanceFromDragStart() > 3  //true; (this used to work when mouseDrag() was not called before any old mouseUp() event, prior to JUCE 4)
              && !pathAutomationPointsGrabbedWithMouse && !loopRegionBeginSelected && !loopRegionEndSelected) { // bad things can happen if we mouse drag when the path pts are grabbed {
             mouseDragged(selectionBox, mouseDown, mouseCurrent);
         }
@@ -3257,7 +3286,7 @@ void ThreeDAudioProcessorEditor::mouseDrag(const MouseEvent& event)
 
 void ThreeDAudioProcessorEditor::mouseUp(const MouseEvent & event)
 {
-	const std::lock_guard<decltype(glLock)> lockGL (glLock);
+    const std::lock_guard<decltype(glLock)> lockGL (glLock);
  
     sources = nullptr;
     const Locker lock (processor->sources.get(sources));
@@ -3309,6 +3338,7 @@ void ThreeDAudioProcessorEditor::mouseUp(const MouseEvent & event)
                 }
                 if (mixSlider.mouseClicked(getMousePosition())) {
                     cauto v = 0.01f * mixSlider.getValue();
+                    //cauto nonzeroVolumeVal = std::max(volumeSlider.getValue(), 0.001f);
                     processor->wetOutputVolume = v * volumeSlider.getValue();
                     processor->dryOutputVolume = (1 - v) * volumeSlider.getValue();
 //                    processor->dryOutputVolume = 1.0f - v;
@@ -3355,7 +3385,7 @@ void ThreeDAudioProcessorEditor::mouseUp(const MouseEvent & event)
                         positionerText3DID = {mouseOverPathPointSourceIndex, mouseOverPathPointIndex};
                         cauto b = pathIndexTexts[positionerText3DID.sourceIndex][positionerText3DID.pathPtIndex]->getBoundary();
                         xy[0] = b.centerX();
-                        xy[1] = b.getTop() + pixelsToNormalized(3, glWindow.height);
+                        xy[1] = b.getTop() + pixelsToNormalized(3, getHeight());
 //                        positionerText3D.raeText.setHightColor(Colour::fromRGBA(255, 2, 229, 255).withAlpha(0.3f));
 //                        positionerText3D.xyzText.setHightColor(Colour::fromRGBA(255, 2, 229, 255).withAlpha(0.3f));
                     }
@@ -3606,7 +3636,7 @@ SKIP:
 
 void ThreeDAudioProcessorEditor::mouseDown(const MouseEvent & event)
 {
-	const std::lock_guard<decltype(glLock)> lockGL (glLock);
+    const std::lock_guard<decltype(glLock)> lockGL (glLock);
     
     mouseIsDown = true;
     mouseJustDown = true;
@@ -3614,7 +3644,7 @@ void ThreeDAudioProcessorEditor::mouseDown(const MouseEvent & event)
 
 void ThreeDAudioProcessorEditor::mouseDoubleClick(const MouseEvent & event)
 {
-	const std::lock_guard<decltype(glLock)> lockGL (glLock);
+    const std::lock_guard<decltype(glLock)> lockGL (glLock);
     
     mouseDoubleClicked = true;
     cauto mouse_x = getMouseX();
@@ -3645,8 +3675,7 @@ void ThreeDAudioProcessorEditor::mouseDoubleClick(const MouseEvent & event)
             if (positionerText3DID.sourceIndex != -1 && positionerText3DID.pathPtIndex != -1 &&
                 ((EditableTextBox*)(pathIndexTexts[positionerText3DID.sourceIndex][positionerText3DID.pathPtIndex].get()))->mouseDoubleClicked()) {
                 positionerText3D.mouseDoubleClicked(); // to release focus if necessary
-            } 
-			else if (positionerText3D.mouseDoubleClicked()) {}
+            } else if (positionerText3D.mouseDoubleClicked()) {}
             else if (dopplerSlider.mouseDoubleClicked()) {}
             else if (mouseOverSourceIndex != -1) {
                 // if mouse is clicked directly over a source, toggle its selected state
@@ -3746,7 +3775,7 @@ void ThreeDAudioProcessorEditor::resizePathPtsPrevState()
 void ThreeDAudioProcessorEditor::mouseWheelMove	(const MouseEvent & event,
                                                  const MouseWheelDetails & wheel)
 {
-	const std::lock_guard<decltype(glLock)> lockGL (glLock);
+    const std::lock_guard<decltype(glLock)> lockGL (glLock);
     
     mouseWheeldX = 0.5f * wheel.deltaX;
     mouseWheeldY = 0.5f * wheel.deltaY;
@@ -3771,12 +3800,12 @@ void ThreeDAudioProcessorEditor::mouseWheelMove	(const MouseEvent & event,
                 if (event.mods.isAltDown())
                     sourcesMoved = processor->moveSelectedSourcesRAE(1+mouseWheeldX, 0, 0, positionerText3DID.sourceIndex >= 0 && positionerText3DID.pathPtIndex == -1);
                 else
-                    sourcesMoved = processor->moveSelectedSourcesRAE(1, mouseWheeldX, 0, positionerText3DID.sourceIndex >= 0 && positionerText3DID.pathPtIndex == -1);
+                    sourcesMoved = processor->moveSelectedSourcesRAE(1, -mouseWheeldX, 0, positionerText3DID.sourceIndex >= 0 && positionerText3DID.pathPtIndex == -1);
             } else {
                 if (event.mods.isAltDown())
-                    sourcesMoved = processor->moveSelectedSourcesRAE(1+mouseWheeldY, 0, 0, positionerText3DID.sourceIndex >= 0 && positionerText3DID.pathPtIndex == -1);
+                    sourcesMoved = processor->moveSelectedSourcesRAE(1-mouseWheeldY, 0, 0, positionerText3DID.sourceIndex >= 0 && positionerText3DID.pathPtIndex == -1);
                 else
-                    sourcesMoved = processor->moveSelectedSourcesRAE(1, 0, mouseWheeldY, positionerText3DID.sourceIndex >= 0 && positionerText3DID.pathPtIndex == -1);
+                    sourcesMoved = processor->moveSelectedSourcesRAE(1, 0, -mouseWheeldY, positionerText3DID.sourceIndex >= 0 && positionerText3DID.pathPtIndex == -1);
             }
         }
         else {
@@ -3794,9 +3823,9 @@ void ThreeDAudioProcessorEditor::mouseWheelMove	(const MouseEvent & event,
             if (event.mods.isAltDown()) {
                 
                 if (DXLargerThanDY)
-                    eyeRad += mouseWheeldX;
+                    eyeRad -= mouseWheeldX;
                 else
-                    eyeRad += mouseWheeldY;
+                    eyeRad -= mouseWheeldY;
                 
                 if (eyeRad < 0.2f)
                     eyeRad = 0.2f;
@@ -3805,7 +3834,7 @@ void ThreeDAudioProcessorEditor::mouseWheelMove	(const MouseEvent & event,
                 
             } else if (DXLargerThanDY) {
                 
-                eyeAzi -= mouseWheeldX;
+                eyeAzi += mouseWheeldX;
                 
                 if (eyeAzi < 0)
                     eyeAzi += 2*M_PI;
@@ -3817,7 +3846,7 @@ void ThreeDAudioProcessorEditor::mouseWheelMove	(const MouseEvent & event,
                 
             } else {
                 
-                eyeEle += upDir*mouseWheeldY;
+                eyeEle -= upDir*mouseWheeldY;
                 
                 if (eyeEle < 0) {
                     eyeEle *= -1.0f;
@@ -3889,9 +3918,9 @@ void ThreeDAudioProcessorEditor::mouseWheelMove	(const MouseEvent & event,
             if (event.mods.isAltDown()) {
                 
                 if (DXLargerThanDY)
-                    eyeRad += mouseWheeldX;
+                    eyeRad -= mouseWheeldX;
                 else
-                    eyeRad += mouseWheeldY;
+                    eyeRad -= mouseWheeldY;
                 //eyeRad += mouseWheeldY;
                 
                 if (eyeRad < 0.2f)
@@ -3901,7 +3930,7 @@ void ThreeDAudioProcessorEditor::mouseWheelMove	(const MouseEvent & event,
                 
             } else if (DXLargerThanDY) {
                 
-                eyeAzi -= mouseWheeldX;
+                eyeAzi += mouseWheeldX;
                 
                 if (eyeAzi < 0)
                     eyeAzi += 2*M_PI;
@@ -3913,7 +3942,7 @@ void ThreeDAudioProcessorEditor::mouseWheelMove	(const MouseEvent & event,
                 
             } else {
                 
-                eyeEle += upDir*mouseWheeldY;
+                eyeEle -= upDir*mouseWheeldY;
                 
                 if (eyeEle < 0) {
                     eyeEle *= -1.0f;
@@ -3950,7 +3979,7 @@ void ThreeDAudioProcessorEditor::mouseWheelMove	(const MouseEvent & event,
                 } else
                     x = getMouseX();
                 auto deltaX = pathAutomationView.holderToViewX(x/*getMouseX()*/);
-                pathAutomationView.setWidth(pathAutomationView.getWidth() * (1 + 0.3f * mouseWheeldY));
+                pathAutomationView.setWidth(pathAutomationView.getWidth() * (1 - 0.3f * mouseWheeldY));
                 deltaX -= pathAutomationView.holderToViewX(x/*getMouseX()*/);
                 pathAutomationView.setXPosition(pathAutomationView.getXPosition() + deltaX);
             }
@@ -4141,7 +4170,7 @@ void ThreeDAudioProcessorEditor::autoAlignAutomationPoints(const bool alignInX,
 void ThreeDAudioProcessorEditor::mouseMagnify (const MouseEvent & event,
                                                float scaleFactor)
 {
-	const std::lock_guard<decltype(glLock)> lockGL (glLock);
+    const std::lock_guard<decltype(glLock)> lockGL (glLock);
     
     mouseZoomFactor = scaleFactor;
     
@@ -4155,7 +4184,7 @@ void ThreeDAudioProcessorEditor::mouseMagnify (const MouseEvent & event,
         if (sourcesMoved == 0) {
             // move the eye radially
             if (mouseZoomFactor != 1.0f) {
-                eyeRad *= mouseZoomFactor;
+                eyeRad /= mouseZoomFactor;
                 if (eyeRad < 0.2f)
                     eyeRad = 0.2f;
                 updateEyePositionRAE(eyeRad, eyeAzi, eyeEle);
@@ -4178,7 +4207,7 @@ void ThreeDAudioProcessorEditor::mouseMagnify (const MouseEvent & event,
             MOVE_3D_VIEW:
                 // move the eye radially
                 if (mouseZoomFactor != 1.0f) {
-                    eyeRad *= mouseZoomFactor;
+                    eyeRad /= mouseZoomFactor;
                     if (eyeRad < 0.2f)
                         eyeRad = 0.2f;
                     updateEyePositionRAE(eyeRad, eyeAzi, eyeEle);
@@ -4215,7 +4244,7 @@ void ThreeDAudioProcessorEditor::mouseMagnify (const MouseEvent & event,
 
 bool ThreeDAudioProcessorEditor::keyPressed	(const KeyPress & key)
 {
-	const std::lock_guard<decltype(glLock)> lockGL (glLock);
+    const std::lock_guard<decltype(glLock)> lockGL (glLock);
 
     auto str = key.getTextDescription();
     if (!key.getModifiers().isShiftDown())
@@ -4550,7 +4579,7 @@ bool ThreeDAudioProcessorEditor::keyPressed	(const KeyPress & key)
                     }
                     else // if shift is not down, move view ele up (down in number value)
                     {
-                        eyeEle -= upDir*4*M_PI/180;
+                        eyeEle += upDir*4*M_PI/180;
                         
                         if (eyeEle <= 0) {
                             eyeEle *= -1;
@@ -4603,7 +4632,7 @@ bool ThreeDAudioProcessorEditor::keyPressed	(const KeyPress & key)
                     }
                     else // if shift is not down, move view ele up (down in number value)
                     {
-                        eyeEle += upDir*4*M_PI/180;
+                        eyeEle -= upDir*4*M_PI/180;
                         
                         if (eyeEle <= 0) {
                             eyeEle *= -1.0;
@@ -4644,7 +4673,7 @@ bool ThreeDAudioProcessorEditor::keyPressed	(const KeyPress & key)
                 // move the view azimuth
                 if (numMoved == 0)
                 {
-                    eyeAzi += 4*M_PI/180;
+                    eyeAzi -= 4*M_PI/180;
                     
                     if (eyeAzi < 0)
                         eyeAzi += 2*M_PI;
@@ -4670,7 +4699,7 @@ bool ThreeDAudioProcessorEditor::keyPressed	(const KeyPress & key)
                 // move the view azimuth
                 if (numMoved == 0)
                 {
-                    eyeAzi -= 4*M_PI/180;
+                    eyeAzi += 4*M_PI/180;
                     
                     if (eyeAzi < 0)
                         eyeAzi += 2*M_PI;
@@ -5008,7 +5037,6 @@ bool ThreeDAudioProcessorEditor::isPositionerText3DIDInBounds() const noexcept
 
 void ThreeDAudioProcessorEditor::reindexPathIndexTexts()
 {
-    //if (openGLContext.isActive()) { // not sure why I needed this (written for mac), its causing problems on windows without solving any known problems
     Sources* sources = nullptr;
     const Locker lock (processor->sources.get(sources));
     if (sources) {
@@ -5035,16 +5063,15 @@ void ThreeDAudioProcessorEditor::reindexPathIndexTexts()
                         pathIndexTexts[s][i]->setLook(&pathIndexTextLook);
                     float xy[2] = {101, 101};
                     to2D({pts[i][0], pts[i][1], pts[i][2]}, xy);
-                    cauto wd2 = 0.5f * pixelsToNormalized(pathIndexTexts[s][i]->getFont(0, 0).getStringWidthFloat(txt) + 6, glWindow.width)
+                    cauto wd2 = 0.5f * pixelsToNormalized(pathIndexTexts[s][i]->getFont(0, 0).getStringWidthFloat(txt) + 6, getWidth()*displayScale)
                                 / pathIndexTexts[s][i]->getLook()->horizontalPad;
-                    cauto hd2 = 0.5f * pixelsToNormalized(pathIndexTexts[s][i]->getLook()->fontSize, glWindow.height)
+                    cauto hd2 = 0.5f * pixelsToNormalized(pathIndexTexts[s][i]->getLook()->fontSize, getHeight()*displayScale)
                                 / pathIndexTexts[s][i]->getLook()->verticalPad;
                     pathIndexTexts[s][i]->setBoundary({xy[1] + hd2, xy[1] - hd2, xy[0] - wd2, xy[0] + wd2});
                 }
             }
         }
     }
-    //}
 }
 
 void ThreeDAudioProcessorEditor::repositionPathIndexTexts()
@@ -5060,15 +5087,31 @@ void ThreeDAudioProcessorEditor::repositionPathIndexTexts()
                     to2D({pts[i][0], pts[i][1], pts[i][2]}, xy);
                     //cauto wd2 = 0.5f * pathIndexTexts[s][i]->getBoundary().width();
                     cauto txt = pathIndexTexts[s][i]->getText();
-                    cauto wd2 = 0.5f * pixelsToNormalized(pathIndexTexts[s][i]->getFont(0, 0).getStringWidthFloat(txt) + 6, glWindow.width)
+                    cauto wd2 = 0.5f * pixelsToNormalized(pathIndexTexts[s][i]->getFont(0, 0).getStringWidthFloat(txt) + 6, getWidth()*displayScale)
                                 / pathIndexTexts[s][i]->getLook()->horizontalPad;
-                    cauto hd2 = 0.5f * pixelsToNormalized(pathIndexTexts[s][i]->getLook()->fontSize, glWindow.height)
+                    cauto hd2 = 0.5f * pixelsToNormalized(pathIndexTexts[s][i]->getLook()->fontSize, getHeight()*displayScale)
                                 / pathIndexTexts[s][i]->getLook()->verticalPad;
                     cauto b = Box(xy[1] + hd2, xy[1] - hd2, xy[0] - wd2, xy[0] + wd2);
-                    if (positionerText3DID.equals(s, i))
-                        ((EditableTextBox*)pathIndexTexts[s][i].get())->setBoundary(b);
-                    else
-                        pathIndexTexts[s][i]->setBoundary(b);
+                    pathIndexTexts[s][i]->setBoundary(b);
+//                    int whichOne = 0;
+//                    if (positionerText3DID.equals(s, i))
+//                        pathIndexTexts[s][i]->setBoundary(b);
+//                        //((EditableTextBox*)pathIndexTexts[s][i].get())->setBoundary(b); // 2-5-18: this cast seems to cause the pathIndexText text box occasional misplacement when editing path point order that is troubleshoot below, why was it here?
+//                    else {
+//                        pathIndexTexts[s][i]->setBoundary(b);
+//                        whichOne = 1;
+//                    }
+                    
+//                    if (pathIndexTexts[s][i]->getBoundary().width() > 0.2f) {
+//                        cauto bb = pathIndexTexts[s][i]->getBoundary();
+//                        cauto ww = bb.width();
+//                        std::cout << std::to_string(s) + " " + std::to_string(i) + " " + std::to_string(whichOne) + " " + std::to_string(ww) + " something is a problem here...\n";
+//                    }
+//                    else {
+//                        bool happy = true;
+//                        whichOne = happy;
+//                        std::cout << std::to_string((*sources)[s].getNumPathPoints()) + " something is a problem here...\n";
+//                    }
                 }
             }
         }
@@ -5121,17 +5164,17 @@ void ThreeDAudioProcessorEditor::repositionAxis3dLabels()
     cauto hd2 = pixelsToNormalized(axis3dTextLook.fontSize, getHeight());
     cauto wd2 = pixelsToNormalized(axis3dTextLook.fontSize, getWidth());
     float xy[2];
-    to2D({1.1f, 0, 0}, xy);
+    to2D({1.1f, 0.0f, 0.0f}, xy);
     axis3dLabels[0].setBoundary({xy[1] + hd2, xy[1] - hd2, xy[0] - wd2, xy[0] + wd2});
-    to2D({-1.1f, 0, 0}, xy);
+    to2D({-1.1f, 0.0f, 0.0f}, xy);
     axis3dLabels[1].setBoundary({xy[1] + hd2, xy[1] - hd2, xy[0] - wd2, xy[0] + wd2});
-    to2D({0, 0, -1.1f}, xy);
+    to2D({0.0f, 0.0f, -1.1f}, xy);
     axis3dLabels[2].setBoundary({xy[1] + hd2, xy[1] - hd2, xy[0] - wd2, xy[0] + wd2});
-    to2D({0, 0, 1.1f}, xy);
+    to2D({0.0f, 0.0f, 1.1f}, xy);
     axis3dLabels[3].setBoundary({xy[1] + hd2, xy[1] - hd2, xy[0] - wd2, xy[0] + wd2});
-    to2D({0, 1.1f, 0}, xy);
+    to2D({0.0f, 1.1f, 0.0f}, xy);
     axis3dLabels[4].setBoundary({xy[1] + hd2, xy[1] - hd2, xy[0] - wd2, xy[0] + wd2});
-    to2D({0, -1.1f, 0}, xy);
+    to2D({0.0f, -1.1f, 0.0f}, xy);
     axis3dLabels[5].setBoundary({xy[1] + hd2, xy[1] - hd2, xy[0] - wd2, xy[0] + wd2});
 //    axis3dLabels[1] = TextBox("B", Box(), &axis3dTextLook);
 //    axis3dLabels[2] = TextBox("L", Box(), &axis3dTextLook);
@@ -5423,6 +5466,10 @@ void ThreeDAudioProcessorEditor::getOnScreenDirection(const int dir, float (&xyz
 
 bool ThreeDAudioProcessorEditor::pathAutomationPointIndexValid(const std::array<int, 3>& index) const noexcept
 {
+	Sources* sources = nullptr;
+	const Locker lock(processor->sources.get(sources));
+	if (!sources)
+		return false;
     return (index[0] != -1 && index[1] != -1) &&
         index[1] < (*sources)[index[0]].getPathPosPtr()->getNumPoints() &&
         index[2] < (*sources)[index[0]].getPathPosPtr()->getNumSelectedPoints();

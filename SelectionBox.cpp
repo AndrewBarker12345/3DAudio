@@ -1,25 +1,9 @@
-/*
- SelectionBox.cpp
- 
- Represents a rectangle that can select stuff, aka click and drag.
-
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+//
+//  SelectionBox.cpp
+//
+//  Created by Andrew Barker on 9/20/16.
+//
+//
 
 #include "SelectionBox.h"
 #include "OpenGL.h"
@@ -47,6 +31,10 @@ Animation& SelectionBox::getAnimation() noexcept
 {
     return animation;
 }
+//void SelectionBox::setAnimation(const Animation& newAnimation) noexcept
+//{
+//    animation = newAnimation;
+//}
 
 bool SelectionBox::isActive() const noexcept
 {
@@ -69,9 +57,9 @@ void draw (SelectionBox& box,
         const float alphaFactor = active ? 1 : 1 - animation.getProgress();
         animation.advance(window.frameRate);
         glColor4f(1, 1, 1, 1 * alphaFactor);
-        box.drawOutline();
+        box.drawOutline();// drawOutline(box);
         glColor4f(0.6f, 0.6f, 0.6f, 0.2f * alphaFactor);
-        box.drawFill();
+        box.drawFill();// drawFill(box);
     }
 }
 
@@ -82,3 +70,9 @@ void mouseDragged (SelectionBox& box,
     box = {mouseCurrent.y, mouseDown.y, mouseCurrent.x, mouseDown.x};
     box.setActive(true);
 }
+
+//bool isDragging (const SelectionBox& box) noexcept
+//{
+//    return area(box) != 0 && box.getAnimation().getProgress() == 0;
+//}
+

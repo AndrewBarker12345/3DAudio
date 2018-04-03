@@ -1,25 +1,28 @@
+//
+//  Interpolator.h
+//
+//  Created by Andrew Barker on 9/25/15.
+//
+//
 /*
- Interpolator.h
- 
- N-dimensional interpolators of various type with polyporphic spline segments.
-
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+     3DAudio: simulates surround sound audio for headphones
+     Copyright (C) 2016  Andrew Barker
+     
+     This program is free software: you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published by
+     the Free Software Foundation, either version 3 of the License, or
+     (at your option) any later version.
+     
+     This program is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+     GNU General Public License for more details.
+     
+     You should have received a copy of the GNU General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+     
+     The author can be contacted via email at andrew.barker.12345@gmail.com.
+ */
 
 #ifndef __Interpolator__
 #define __Interpolator__
@@ -1464,7 +1467,7 @@ void ClosedParametricInterpolator<T>::setSelectedPointIndices(cint pointIndex,
 //    debug({"selectedPointIndices:     " + toString(selectedPointIndices),
 //           "newSelectedPointIndices:  " + toString(newSelectedPointIndices),
 //           "unselectedPointIndicies:  " + toString(unselectedPointIndices)});
-    
+	auto copyOfPts = points;
     partial_rotate(points, Interpolator<T>::getSelectedPointIndices(), deltaIndex);
 //    //const std::vector<SelectablePoint<T>>
 //    cauto copy = points;
@@ -1603,8 +1606,6 @@ template <typename T>
 int ParametricInterpolator<T>::moveSelectedPoints(const std::vector<T>& delta)
 {
     const int num_moved = selected_points.size();
-	if (num_moved == 0) // can't get a front() ref below if no pts selected
-		return num_moved;
     const int d = max_pts_per_spline >> 1;
     std::vector<int> update_chunks {selected_points.front() - d};
     int prev_selected = selected_points.front();

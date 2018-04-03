@@ -1,7 +1,7 @@
 /*
  BoundedValue.h
  
- Abstracts the concept of an ordered value that must be in the range of [min, max].
+ Abstracts the concept of an ordered value that must be in the range of [min, max]
  
  Copyright (C) 2016  Andrew Barker
  
@@ -19,7 +19,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
  The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+ */
 
 #ifndef BoundedValue_h
 #define BoundedValue_h

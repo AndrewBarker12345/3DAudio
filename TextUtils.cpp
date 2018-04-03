@@ -1,25 +1,10 @@
-/*
- TextUtils.cpp
- 
- An assortment of text GUI functionality and other GUI building blocks.
-
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+//
+//  TextUtils.cpp
+//  ThreeDAudio
+//
+//  Created by Andrew Barker on 3/2/16.
+//
+//
 
 #include "TextUtils.h"
 #include <iostream>
@@ -1844,51 +1829,47 @@ GLTextRadioButton::GLTextRadioButton(const TextBoxGroup& optionsIn,
 }
 
 void GLTextRadioButton::draw(OpenGLWindow& window,
-	const Point<float>& mousePosition)
+                             const Point<float>& mousePosition)
 {
-	// draw dark shading so any background objects are visible, but darkened
-	glColor4f(0.0, 0.0, 0.0, 0.85);
-	options.getBoundary().drawFill();
-
-	setMouseOver(mousePosition);
-
-	
+    // draw dark shading so any background objects are visible, but darkened
+    glColor4f(0.0, 0.0, 0.0, 0.85);
+    options.getBoundary().drawFill();
+    
+    setMouseOver(mousePosition);
+    
+    //for (auto& x : mouseOverAnimations.getVector()) { // windows throws an assert when size of vector is zero
 	for (int i = 0; i < mouseOverAnimations.getVector().size(); ++i) {
 		auto& x = mouseOverAnimations.getVector()[i];
-	//for (auto& x : mouseOverAnimations.getVector()) {
-		x.thing.advance(window.frameRate);
-		if (!x.thing.isPlaying()) {
-			if (mouseOver == x.idNum) {
-				if (selected == autoDetect && mouseOver == autoDetected)
-					options.setLook(x.idNum, mouseOverAutoDetectLook);
-				else
-					options.setLook(x.idNum, mouseOverLook);
-			}
-			else {
-				//                if (selected == autoDetect && x.idNum == autoDetected)
-				//                    options.setLook(x.idNum, selectedLook);
-				//                else
-				options.setLook(x.idNum, normalLook);
-			}
-			mouseOverAnimations.remove(x.idNum);
-		}
-		else {
-			if (mouseOver == x.idNum) {
-				if (selected == autoDetect && mouseOver == autoDetected)
-					x.thing.look = blend(*normalLook/*selectedLook*/, *mouseOverAutoDetectLook, x.thing.getProgress());
-				else
-					x.thing.look = blend(*normalLook, *mouseOverLook, x.thing.getProgress());
-			}
-			else {
-				if (selected == autoDetect && x.idNum == autoDetected)
-					x.thing.look = blend(*mouseOverAutoDetectLook, *normalLook/*selectedLook*/, x.thing.getProgress());
-				else
-					x.thing.look = blend(*mouseOverLook, *normalLook, x.thing.getProgress());
-			}
-			options.setLook(x.idNum, &x.thing.look);
-		}
-	}
-	
+        x.thing.advance(window.frameRate);
+        if (!x.thing.isPlaying()) {
+            if (mouseOver == x.idNum) {
+                if (selected == autoDetect && mouseOver == autoDetected)
+                    options.setLook(x.idNum, mouseOverAutoDetectLook);
+                else
+                    options.setLook(x.idNum, mouseOverLook);
+            } else {
+//                if (selected == autoDetect && x.idNum == autoDetected)
+//                    options.setLook(x.idNum, selectedLook);
+//                else
+                    options.setLook(x.idNum, normalLook);
+            }
+            mouseOverAnimations.remove(x.idNum);
+        } else {
+            if (mouseOver == x.idNum) {
+                if (selected == autoDetect && mouseOver == autoDetected)
+                    x.thing.look = blend(*normalLook/*selectedLook*/, *mouseOverAutoDetectLook, x.thing.getProgress());
+                else
+                    x.thing.look = blend(*normalLook, *mouseOverLook, x.thing.getProgress());
+            } else {
+                if (selected == autoDetect && x.idNum == autoDetected)
+                    x.thing.look = blend(*mouseOverAutoDetectLook, *normalLook/*selectedLook*/, x.thing.getProgress());
+                else
+                    x.thing.look = blend(*mouseOverLook, *normalLook, x.thing.getProgress());
+            }
+            options.setLook(x.idNum, &x.thing.look);
+        }
+    }
+    
     if (selectAnimation.isPlaying()) {
         selectAnimation.look = blend(*selectAnimationBeginLook, *selectedLook, selectAnimation.getProgress());
         selectAnimation.advance(window.frameRate);
@@ -2195,7 +2176,6 @@ void GLSlider::draw(OpenGLWindow& w,
             setTextValue(value);
     }
 
-    
 //    // draw dark shading so any background objects are visible, but darkened
 //    glColor4f(0.0, 0.0, 0.0, 0.85);
 //    boundary.drawFill();
@@ -2310,8 +2290,13 @@ bool GLSlider::mouseDoubleClicked()
 }
 
 bool GLSlider::mouseDragged(const Point<float>& mouseDownPosition,
-                            const Point<float>& mouseCurrentPosition)
+                            const Point<float>& mouseCurrentPosition,
+                            const bool sliderDragEnabled)
 {
+    if (sliderDragEnabled && mouseOverEnabled && isMouseOver(mouseDownPosition)) {
+        setValue(getValue(mouseCurrentPosition));
+        return true;
+    }
     return valueText.mouseDragged(mouseDownPosition, mouseCurrentPosition);
 }
 
@@ -2329,7 +2314,9 @@ bool GLSlider::keyPressed(const std::string& key)
             try {
                 setValue(std::stof(valueText.getText()));
             } catch (...) {
-                setValue(value);
+                //setValue(value); // catch happens when valueText is empty so just keep value the same reset the text to show that
+                setValueAnimation.restart();
+                setTextValue(value);
             }
         }
     }

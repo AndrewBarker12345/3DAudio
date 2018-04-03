@@ -1,25 +1,28 @@
+//
+//  PluginEditor.h
+//
+//  Created by Andrew Barker on 4/26/14.
+//
+//
 /*
- PluginEditor.h
- 
- The shitshow of code that is 3DAudio's GUI.
-
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+     3DAudio: simulates surround sound audio for headphones
+     Copyright (C) 2016  Andrew Barker
+     
+     This program is free software: you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published by
+     the Free Software Foundation, either version 3 of the License, or
+     (at your option) any later version.
+     
+     This program is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+     GNU General Public License for more details.
+     
+     You should have received a copy of the GNU General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+     
+     The author can be contacted via email at andrew.barker.12345@gmail.com.
+ */
 
 #ifndef __PluginEditor__
 #define __PluginEditor__
@@ -216,7 +219,6 @@ public:
                            bool positionLinesEnabled = true);
     //void drawRect(float centerX, float centerY, float deltaX, float deltaY);
     //void setProcessingModeAutoDetect(bool isHostRealTime) noexcept;
-    
 private:
     TextLook axis3dTextLook;
     std::array<TextBox, 6> axis3dLabels;
@@ -327,7 +329,7 @@ private:
     // display time as sec (=0) or in measures|beats|frac (=1)
     int timeMode = 0;
     // to sync reads/writes to various variables used by the GL rendering JUCE message thread threads
-    std::recursive_mutex /*std::mutex*/ glLock;
+	std::recursive_mutex /*std::mutex*/ glLock;
     std::atomic<float> windowAspectRatio {1.0f};
     GLTextTabs tabs {{"Sound Sources", "Automate Movement", "Audio Settings"}, {0.995f, 0.92f, -1.0f, 1.0f}, GLTextTabs::ABOVE};
     TextLook processingModeNormalLook;
@@ -426,7 +428,7 @@ private:
     float arrowKeySpeedFactor = initialArrowKeySpeedFactor;
     static constexpr float initialArrowKeySpeedFactor = 1.0;
     static constexpr float baseArrowKeySpeed = 0.01;
-    
+    float displayScale = 1.0; // scale for monitor display needed to display properly on retina mac screens
     //static constexpr float openGLFrameRate = 30.0; // in frames per second
     ThreeDAudioProcessor* getProcessor() const
     {

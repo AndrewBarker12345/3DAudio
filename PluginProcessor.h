@@ -1,25 +1,28 @@
+//
+//  PluginProcessor.h
+//
+//  Created by Andrew Barker on 4/26/14.
+//
+//
 /*
- PluginProcessor.h
- 
- The meat of 3DAudio's audio processing and plugin related code.
-
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+     3DAudio: simulates surround sound audio for headphones
+     Copyright (C) 2016  Andrew Barker
+     
+     This program is free software: you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published by
+     the Free Software Foundation, either version 3 of the License, or
+     (at your option) any later version.
+     
+     This program is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+     GNU General Public License for more details.
+     
+     You should have received a copy of the GNU General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+     
+     The author can be contacted via email at andrew.barker.12345@gmail.com.
+ */
 
 #ifndef __PluginProcessor__
 #define __PluginProcessor__
@@ -45,8 +48,6 @@ static constexpr auto maxNumSources = 8;
 // making life easier
 using Sources = std::vector<SoundSource>;
 using Locker = std::lock_guard<Mutex>;
-
-class ThreeDAudioProcessorEditor;
 
 class ThreeDAudioProcessor : public AudioProcessor, public UndoManager
   #ifdef DEMO // demo version only
@@ -198,13 +199,16 @@ public:
     std::array<std::atomic<AudioParameterFloat*>, maxNumSources> sourcePathPositionsFromDAW; // for source position automation from DAW
     std::atomic<float> wetOutputVolume {1.0f};
     std::atomic<float> dryOutputVolume {0.0f};
+    float savedMixValue = wetOutputVolume / (wetOutputVolume + dryOutputVolume);
     
 private:
   #ifdef DEMO // Demo version only
     DialogWindow::LaunchOptions buyMeWindowLauncher;
     DialogWindow* buyMeWindow = nullptr;
   #endif
-    
+    float prevWetOutputVolume = wetOutputVolume;
+    float prevDryOutputVolume = dryOutputVolume;
+	int maxBufferSizePreparedFor = -1;
     // version of sources that can be used to process audio, only updated in processBlock() and is therefore thread-safe to use for processing
     std::vector<PlayableSoundSource> playableSources;
     int prevSourcesSize = 0; // see processBlock() for useage
@@ -221,6 +225,7 @@ private:
     float posSECprev = 0;
     // prev buf time position from host's perspective
     float posSECPrevHost = 0;
+	float prevBufferDuration = 0;
     // are we ready to process audio with sound sources?
     std::atomic<bool> inited {false};
     // during playback sources can be locked to move on their paths, or moved about freely by the user

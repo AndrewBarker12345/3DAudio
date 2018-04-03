@@ -1,38 +1,33 @@
-/*
- Multi.h
- 
- Holds multiple, uniquely-IDed things (like a std::map, but underlying container is a vector).
-
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+//
+//  Multi.h
+//
+//  Created by Andrew Barker on 4/15/16.
+//
+//
 
 #ifndef Multi_h
 #define Multi_h
 
 #include <vector>
 
+// holds multiple, uniquely-IDed things (like a std::map, but underlying container is a vector)
 template <class Thing>
 class Multi
 {
 private:
+    // can't use POD's with inheritance
+//    class IDedThing : public Thing
+//    {
+//    public:
+//        template <class... Args>
+//        IDedThing(std::size_t idNumber, Args&&... args) : Thing(std::forward<Args>(args)...), idNum(idNumber) {}
+//        Thing thing;
+//        std::size_t idNum = 0;
+//    };
     class IDedThing
     {
     public:
+        //IDedThing(std::size_t idNumber, Thing thing) : thing(thing), idNum(idNumber) {}
         template <class... Args>
         IDedThing(const std::size_t idNumber, Args&&... args) : thing(std::forward<Args>(args)...), idNum(idNumber) {}
         Thing thing;
@@ -59,6 +54,11 @@ public:
     
     std::vector<IDedThing>& getVector() noexcept
     {
+//        std::vector<Thing> justThings;
+//        justThings.reserve(things.size());
+//        for (const auto& thing : things)
+//            justThings.emplace_back(thing);
+//        return justThings;
         return things;
     }
     

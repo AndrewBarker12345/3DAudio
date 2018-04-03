@@ -1,32 +1,20 @@
-/*
- Box.h
- 
- A 2D rectangle enforcing that top > bottom and left < right.
- 
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
- 
+//
+//  Box.h
+//
+//  Created by Andrew Barker on 9/19/16.
+//
+//
+
 #ifndef Box_h
 #define Box_h
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include <vector>
 
+//template <class T>
+//struct Point { T x, y; };
+
+/** A 2D rectangle enforcing that top > bottom and left < right */
 class Box
 {
 public:
@@ -92,9 +80,37 @@ public:
     Box scaled (float hScale, float vScale) const noexcept;
     /** moves this box by a given x/y distance */
     void move (float dx, float dy) noexcept;
+//    friend void move(Box& b,
+//                     float dx,
+//                     float dy) noexcept;
     
 private:
     float top, bottom, left, right;
 };
+
+//float width (const Box& b) noexcept;
+//float height (const Box& b) noexcept;
+//float area (const Box& b) noexcept;
+//void drawVerticies (const Box& b);
+//void drawOutline (const Box& b);
+//void drawFill (const Box& b);
+//std::vector<Point<float>> boundaryPoints(const Box& b) noexcept;
+//bool contain (const Box& b,
+//              const Point<float>& pt) noexcept;
+//bool overlap (const Box& b1,
+//              const Box& b2) noexcept;
+//void crop (Box& b,
+//           const Box& crop) noexcept;
+//Box combined (const Box& b1,
+//              const Box& b2) noexcept;
+//Box getScaled (const Box& b,
+//               float hScale,
+//               float vScale) noexcept;
+//void move(Box& b,
+//          float dx,
+//          float dy) noexcept;
+////void placeWithin(Box& b,
+////                 const Box& placeWithin,
+////                 const std::vector<Box>& noOverlap) noexcept;
 
 #endif /* Box_h */

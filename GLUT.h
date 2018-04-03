@@ -1,25 +1,9 @@
-/*
- GLUT.h
- 
- Cuz linking with GLUT sucks for cross-platform dev.
-
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+//
+//  GLUT.h
+//
+//  Created by Andrew Barker on 9/20/16.
+//
+//
 
 #ifndef GLUT_h
 #define GLUT_h
@@ -31,6 +15,7 @@
 //  #include <GL/glut.h>
 //#endif
 
+//#include <cassert>
 #include "Points.h"
 
 // screw linking to other libraries when doing cross-platform dev...
@@ -63,6 +48,7 @@ static void lookAt (const PointXYZ<float>& eye,
 static void perspective (const GLdouble fovY, const GLdouble aspect,
                          const GLdouble zNear, const GLdouble zFar)
 {
+    //const GLdouble pi = 3.1415926535897932384626433832795;
     cauto fH = std::tan(0.5 * toRadians(fovY)) * zNear;
     cauto fW = fH * aspect;
     glFrustum(-fW, fW, -fH, fH, zNear, zFar);
@@ -174,6 +160,30 @@ public:
         glPopMatrix();
     }
 };
+
+//template <class T>
+//void perspective(const T fovy, const T aspect, const T zNear, const T zFar)
+//{
+//    assert(abs(aspect - std::numeric_limits<T>::epsilon()) > static_cast<T>(0));
+//
+//    const T tanHalfFovy = std::tan(fovy / static_cast<T>(2));
+//
+//    //tmat4x4<T, defaultp> Result(static_cast<T>(0));
+//    GLfloat m[4][4] = {0};
+//    m[0][0] = static_cast<T>(1) / (aspect * tanHalfFovy);
+//    m[1][1] = static_cast<T>(1) / (tanHalfFovy);
+//    m[2][3] = - static_cast<T>(1);
+//
+////#		if GLM_DEPTH_CLIP_SPACE == GLM_DEPTH_ZERO_TO_ONE
+////        Result[2][2] = zFar / (zNear - zFar);
+////        Result[3][2] = -(zFar * zNear) / (zFar - zNear);
+////#		else
+//        m[2][2] = - (zFar + zNear) / (zFar - zNear);
+//        m[3][2] = - (static_cast<T>(2) * zFar * zNear) / (zFar - zNear);
+////#		endif
+////    return Result;
+//    glMultMatrixf(&m[0][0]);
+//}
 
 }
 #endif /* GLUT_h */

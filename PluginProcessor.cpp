@@ -1,25 +1,22 @@
 /*
- PluginProcessor.cpp
- 
- The meat of 3DAudio's audio processing and plugin related code.
-
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+     3DAudio: simulates surround sound audio for headphones
+     Copyright (C) 2016  Andrew Barker
+     
+     This program is free software: you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published by
+     the Free Software Foundation, either version 3 of the License, or
+     (at your option) any later version.
+     
+     This program is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+     GNU General Public License for more details.
+     
+     You should have received a copy of the GNU General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+     
+     The author can be contacted via email at andrew.barker.12345@gmail.com.
+ */
 
 #include "PluginProcessor.h"
 
@@ -77,56 +74,119 @@ float****  HRIRdataPoles;
 //==============================================================================
 ThreeDAudioProcessor::ThreeDAudioProcessor()
 {
-    // if there are no instances going, load the global hrir data for all possible future instances
-    if (numRefs == 0) {
-        // unified poles, compact data
-        // binary hrtf file name
-        String path;
-      #ifdef __APPLE__
-        path = File::getSpecialLocation(File::currentApplicationFile).getFullPathName();
-        path += "/Contents/3DAudioData.bin";
-      #elif _WIN32
-        path = File::getSpecialLocation(File::currentApplicationFile).getParentDirectory().getFullPathName();
+	// if there are no instances going, load the global hrir data for all possible future instances
+	if (numRefs == 0) {
+		// unified poles, compact data
+		// binary hrtf file name
+		String path;
+#ifdef __APPLE__
+		path = File::getSpecialLocation(File::currentApplicationFile).getFullPathName();
+		path += "/Contents/3DAudioData.bin";
+#elif _WIN32
+		path = File::getSpecialLocation(File::currentApplicationFile).getParentDirectory().getFullPathName();
 		path += "/3DAudioData.bin";
-      #endif
-        // basic read (should be cross platform)
-        // open the stream
-        std::ifstream is (path.getCharPointer(), std::ios::binary);
-        if (is.good()) {
-            HRIRdata = new float****[numDistanceSteps];
-            for (int d = 0; d < numDistanceSteps; ++d) {
-                HRIRdata[d] = new float***[numAzimuthSteps/2+1];
-                for (int a = 0; a < numAzimuthSteps/2+1; ++a) {
-                    HRIRdata[d][a] = new float**[numElevationSteps-1];
-                    for (int e = 0; e < numElevationSteps-1; ++e) {
-                        HRIRdata[d][a][e] = new float*[2];
-                        for (int ch = 0; ch < 2; ++ch) {
-                            HRIRdata[d][a][e][ch] = new float[numTimeSteps];
+#endif
+		// basic read (should be cross platform)
+		// open the stream
+		std::ifstream is(path.getCharPointer(), std::ios::binary);
+		if (is.good()) {
+			HRIRdata = new float****[numDistanceSteps];
+			for (int d = 0; d < numDistanceSteps; ++d) {
+				HRIRdata[d] = new float***[numAzimuthSteps / 2 + 1];
+				for (int a = 0; a < numAzimuthSteps / 2 + 1; ++a) {
+					HRIRdata[d][a] = new float**[numElevationSteps - 1];
+					for (int e = 0; e < numElevationSteps - 1; ++e) {
+						HRIRdata[d][a][e] = new float*[2];
+						for (int ch = 0; ch < 2; ++ch) {
+							HRIRdata[d][a][e][ch] = new float[numTimeSteps];
 							is.read((char*)HRIRdata[d][a][e][ch], numTimeSteps * sizeof(float));
-                        }
-                    }
-                }
-            }
-            // pole data is the same for both channels
-            HRIRdataPoles = new float***[numDistanceSteps];
+						}
+					}
+				}
+			}
+			// pole data is the same for both channels
+			HRIRdataPoles = new float***[numDistanceSteps];
 			std::array<float, numTimeSteps> poleDataBuffer;
-            for (int d = 0; d < numDistanceSteps; ++d) {
-                HRIRdataPoles[d] = new float**[2];
-                HRIRdataPoles[d][0] = new float*[2]; // ele = 0 pole
-                HRIRdataPoles[d][1] = new float*[2]; // ele = 180 pole
-                HRIRdataPoles[d][0][0] = new float[numTimeSteps];
-                HRIRdataPoles[d][0][1] = new float[numTimeSteps];
+			for (int d = 0; d < numDistanceSteps; ++d) {
+				HRIRdataPoles[d] = new float**[2];
+				HRIRdataPoles[d][0] = new float*[2]; // ele = 0 pole
+				HRIRdataPoles[d][1] = new float*[2]; // ele = 180 pole
+				HRIRdataPoles[d][0][0] = new float[numTimeSteps];
+				HRIRdataPoles[d][0][1] = new float[numTimeSteps];
 				is.read((char*)&poleDataBuffer[0], numTimeSteps * sizeof(float));
-                for (int t = 0; t < numTimeSteps; ++t)
+				for (int t = 0; t < numTimeSteps; ++t)
 					HRIRdataPoles[d][0][1][t] = HRIRdataPoles[d][0][0][t] = poleDataBuffer[t];
-                HRIRdataPoles[d][1][0] = new float[numTimeSteps];
-                HRIRdataPoles[d][1][1] = new float[numTimeSteps];
+				HRIRdataPoles[d][1][0] = new float[numTimeSteps];
+				HRIRdataPoles[d][1][1] = new float[numTimeSteps];
 				is.read((char*)&poleDataBuffer[0], numTimeSteps * sizeof(float));
-				for (int t = 0; t < numTimeSteps; ++t) 
+				for (int t = 0; t < numTimeSteps; ++t)
 					HRIRdataPoles[d][1][1][t] = HRIRdataPoles[d][1][0][t] = poleDataBuffer[t];
-            }
+			}
 			is.close();
-        } else {
+		}
+	//// MAC ONLY
+ //   // if there are no instances going, load the global hrir data for all possible future instances
+ //   if (numRefs == 0) {
+ //       // unified poles, compact data
+ //       // binary hrtf file name
+ //       String path = File::getSpecialLocation(File::currentApplicationFile).getParentDirectory().getFullPathName();
+ //       path += "/3dAudioData.bin"; // the compact, unified poles data that is
+ //       // basic read (should be cross platform)
+ //       // open the stream
+ //       std::ifstream is(path.getCharPointer());
+ //       if (is.good()) {
+ //           // determine the file length
+ //           is.seekg(0, is.end);
+ //           size_t size = is.tellg();
+ //           is.seekg(0, is.beg);
+ //           // create a temp array to store the data
+ //           char* dataBuffer = new char[size];
+ //           // load the data
+ //           is.read(dataBuffer, size);
+ //           // close the file
+ //           is.close();
+ //           // pack data into HRIR array
+ //           int index = 0;
+ //           HRIRdata = new float****[numDistanceSteps];
+ //           for (int d = 0; d < numDistanceSteps; ++d) {
+ //               HRIRdata[d] = new float***[numAzimuthSteps/2+1];
+ //               for (int a = 0; a < numAzimuthSteps/2+1; ++a) {
+ //                   HRIRdata[d][a] = new float**[numElevationSteps-1];
+ //                   for (int e = 0; e < numElevationSteps-1; ++e) {
+ //                       HRIRdata[d][a][e] = new float*[2];
+ //                       for (int ch = 0; ch < 2; ++ch) {
+ //                           HRIRdata[d][a][e][ch] = new float[numTimeSteps];
+ //                           for (int t = 0; t < numTimeSteps; ++t) {
+ //                               HRIRdata[d][a][e][ch][t] = *((float*) &dataBuffer[index*sizeof(float)]);
+ //                               ++index;
+ //                           }
+ //                       }
+ //                   }
+ //               }
+ //           }
+ //           // pole data is the same for both channels
+ //           HRIRdataPoles = new float***[numDistanceSteps];
+ //           for (int d = 0; d < numDistanceSteps; ++d) {
+ //               HRIRdataPoles[d] = new float**[2];
+ //               HRIRdataPoles[d][0] = new float*[2]; // ele = 0 pole
+ //               HRIRdataPoles[d][1] = new float*[2]; // ele = 180 pole
+ //               HRIRdataPoles[d][0][0] = new float[numTimeSteps];
+ //               HRIRdataPoles[d][0][1] = new float[numTimeSteps];
+ //               for (int t = 0; t < numTimeSteps; ++t) {
+ //                   HRIRdataPoles[d][0][1][t] = HRIRdataPoles[d][0][0][t] = *((float*) &dataBuffer[index*sizeof(float)]);
+ //                   ++index;
+ //               }
+ //               HRIRdataPoles[d][1][0] = new float[numTimeSteps];
+ //               HRIRdataPoles[d][1][1] = new float[numTimeSteps];
+ //               for (int t = 0; t < numTimeSteps; ++t) {
+ //                   HRIRdataPoles[d][1][1][t] = HRIRdataPoles[d][1][0][t] = *((float*) &dataBuffer[index*sizeof(float)]);
+ //                   ++index;
+ //               }
+ //           }
+ //           // cleanup the temp array
+ //           delete[] dataBuffer;
+ //       } 
+		else {
             // failed to open hrtf binary file, load up zeros
             HRIRdata = new float****[numDistanceSteps];
             for (int d = 0; d < numDistanceSteps; ++d) {
@@ -178,6 +238,7 @@ ThreeDAudioProcessor::ThreeDAudioProcessor()
         addParameter(sourcePathPositionsFromDAW[i] = new AudioParameterFloat ("Source " + String(i+1) + " Position",
                                                                               "Source " + String(i+1) + " Position",
                                                                               NormalisableRange<float>(0, 1), 0));
+    
   #ifdef DEMO // Demo version only
     buyMeWindowLauncher.dialogTitle = "3DAudio Demo Version";
     buyMeWindowLauncher.dialogBackgroundColour = Colours::black.withAlpha(0.9f);
@@ -198,7 +259,7 @@ ThreeDAudioProcessor::~ThreeDAudioProcessor()
 		buyMeWindow->exitModalState(0);
 	}
   #endif
-    
+  
     // cleanup memeory for undo's
     clearUndoHistory();
 
@@ -1040,16 +1101,16 @@ void ThreeDAudioProcessor::copySelectedPathAutomationPoints()
 				(*copy)[s].copySelectedPathAutomationPoints();
 			}
 		}
-        /*for (auto& source : (*copy)) { // windows throws an exception that vector iterator can't be incremented if vector size is 1
-            if (source.getSourceSelected()) {
-                if (source.getPathPosPtr()->getPointsSelected().size() > 0) {
-                    saveCurrentState(1);
-                    saveCurrentState(0);
-                    didIt = true;
-                }
-                source.copySelectedPathAutomationPoints();
-            }
-        }*/
+		/*for (auto& source : (*copy)) { // windows throws an exception that vector iterator can't be incremented if vector size is 1
+			if (source.getSourceSelected()) {
+				if (source.getPathPosPtr()->getPointsSelected().size() > 0) {
+					saveCurrentState(1);
+					saveCurrentState(0);
+					didIt = true;
+				}
+				source.copySelectedPathAutomationPoints();
+			}
+		}*/
         if (didIt) {
             sources.update(copy);
             for (auto& source : *copy)
@@ -1415,13 +1476,13 @@ void ThreeDAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
             s.setDopplerSampleRate(fs);
         // TODO: detect largest latency of doppler and factor that in to the setLatencySamples() call below
     }
-    int playableSourceMaxBufferSize = N;
+	maxBufferSizePreparedFor = N;
     if (fs != sampleRate_HRTF) {
         resampler = Resampler(fs, N, sampleRate_HRTF, true);
         unsamplerCh1 = Resampler(sampleRate_HRTF, N, fs, false);
         unsamplerCh2 = Resampler(sampleRate_HRTF, N, fs, false);
         setLatencySamples(1);
-        playableSourceMaxBufferSize = resampler.getNoutMax();
+		maxBufferSizePreparedFor = resampler.getNoutMax();
     }
 //    {
 //        sources.load(std::vector<SoundSource>(1));
@@ -1442,7 +1503,7 @@ void ThreeDAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     realTime = (processingMode == ProcessingMode::AUTO_DETECT) ? isHostRealTime.load() : processingMode == ProcessingMode::REALTIME;
     // allocate space in each PlayableSoundSource for processing
     for (auto& s : playableSources) {
-        s.allocateForMaxBufferSize(playableSourceMaxBufferSize);
+        s.allocateForMaxBufferSize(maxBufferSizePreparedFor);
     }
     // now we are setup for processing
     inited = true;
@@ -1463,30 +1524,26 @@ void ThreeDAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& 
         buffer.clear(i, 0, buffer.getNumSamples());
     
     // if the plugin is initialized by prepareToPlay()
-    if (inited)
-    {
+    if (inited) {
         // need to update block size if it is not what we expected to make sure we have enough memory alloced for processing
-        if (N != buffer.getNumSamples())
-        {
-            N = buffer.getNumSamples();
-            int playableSourceMaxBufferSize = N;
+		N = buffer.getNumSamples();
+		if (N > maxBufferSizePreparedFor) {
+            maxBufferSizePreparedFor = N;
             // also got to reset the resampler to the new buffer size if the incoming sample rate is not 44.1kHz
-            if (fs != sampleRate_HRTF)
-            {
+            if (fs != sampleRate_HRTF) {
                 resampler = Resampler(fs, N, sampleRate_HRTF, true);
                 unsamplerCh1 = Resampler(sampleRate_HRTF, N, fs, false);
                 unsamplerCh2 = Resampler(sampleRate_HRTF, N, fs, false);
-                playableSourceMaxBufferSize = resampler.getNoutMax();
+                maxBufferSizePreparedFor = resampler.getNoutMax();
             }
             for (auto& s : playableSources)
-                s.allocateForMaxBufferSize(playableSourceMaxBufferSize);
+                s.allocateForMaxBufferSize(maxBufferSizePreparedFor);
         }
         
         // update playback position stuff
         AudioPlayHead::CurrentPositionInfo positionInfo;
         // apparently you only want to call this inside this process block and the information returned by it is only valid for the current process block.
         getPlayHead()->getCurrentPosition(positionInfo);
-        //gPositionInfo = positionInfo;
         positionInfo.timeInSeconds = positionInfo.timeInSamples / fs; // timeInSeconds is always 0 in Tracktion all of a sudden, WTF?!?
         playing = positionInfo.isPlaying;
         timeSigNum = positionInfo.timeSigNumerator;
@@ -1495,11 +1552,10 @@ void ThreeDAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& 
         resetPlayingCount = 0;
         bool looped = false;
         const float thisBufferDuration = ((float)N)/fs;
-        if (loopingEnabled /*loopRegionBegin >= 0 && loopRegionEnd >= 0*/)
-        {
+        if (loopingEnabled) {
             // if the current playback position follows the previous, increment the plugin's playback position without the modulo operation so changing the looping region will not cause craziness
-            if (playing && std::abs(posSECPrevHost+thisBufferDuration - positionInfo.timeInSeconds) < thisBufferDuration) {
-                posSEC = posSECprev + thisBufferDuration;
+            if (playing && std::abs(posSECPrevHost + prevBufferDuration - positionInfo.timeInSeconds) < thisBufferDuration) {
+				posSEC = posSECprev + prevBufferDuration;//posSEC = posSECprev + thisBufferDuration;
                 // keep within the looping region
                 if (posSEC < loopRegionBegin)
                     posSEC.store(loopRegionBegin.load());
@@ -1507,38 +1563,35 @@ void ThreeDAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& 
                     posSEC = loopRegionBegin + posSEC - loopRegionEnd;
             }
             // if the playback position has jumped to somewhere else, reset the plugin's playback position via modulo by the looping region length
-            else {
+            else
                 posSEC = loopRegionBegin + std::fmod(positionInfo.timeInSeconds, loopRegionEnd - loopRegionBegin);
-            }
             // check to see if we looped
-            if (posSECprev < loopRegionEnd && posSECprev+thisBufferDuration >= loopRegionEnd)
+            if (posSECprev < loopRegionEnd && posSECprev+prevBufferDuration/*thisBufferDuration*/ >= loopRegionEnd)
                 looped = true;
         }
         else
             posSEC = positionInfo.timeInSeconds;
         
+        if (posSEC < 0) // make sure position in seconds is positive
+            posSEC = 0;
+        
         // if the playback position does not immediately follow the previous one and it wasn't caused by the looping feature, need to reset the doppler buffer state so that no old audio remaining is played back at the new position
         bool resetProcessingState = false;
-        if (!looped && std::abs(posSECprev+thisBufferDuration - posSEC) > thisBufferDuration)
-            resetProcessingState = true;
+        if (!looped && std::abs(posSECprev - posSEC) > maxBufferSizePreparedFor/fs * 1.1f/*allow for up to 10% error*/)
+			resetProcessingState = true;
         posSECprev = posSEC;
         posSECPrevHost = positionInfo.timeInSeconds;
+		prevBufferDuration = thisBufferDuration;
         
         // convert possibly multiple input channels to mono
         const int numChannels = buffer.getNumChannels();
         const int currentN = N;
         STACK_ARRAY(float, input, currentN);
         STACK_ARRAY(float, stereoInput, 2*currentN);
-//    #ifdef WIN32
-//        float *input = static_cast<float *>(alloca(currentN * sizeof(float)));
-//    #else
-//        float input[currentN];
-//    #endif
         for (int n = 0; n < currentN; ++n)
             input[n] = 0;
         const float scale = 1.0 / numChannels;
-        for (int ch = 0; ch < numChannels; ++ch)
-        {
+        for (int ch = 0; ch < numChannels; ++ch) {
             for (int n = 0; n < currentN; ++n) {
                 input[n] += buffer.getSample(ch, n) * scale;
                 stereoInput[ch*currentN + n] = buffer.getSample(ch, n);
@@ -1551,13 +1604,7 @@ void ThreeDAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& 
         // NOTE: size is getNoutMax() b/c we can't tell if the buffer will be long or short until we make the resample call below
         const int resampledMaxSize = resampler.getNoutMax();
         STACK_ARRAY(float, inputResampled, resampledMaxSize)
-//    #ifdef WIN32
-//        float *inputResampled = static_cast<float *>(alloca(resampledMaxSize * sizeof(float)));
-//    #else
-//        float inputResampled[resampledMaxSize];
-//    #endif
-        if (fs != sampleRate_HRTF)
-        {
+        if (fs != sampleRate_HRTF) {
             for (int n = 0; n < resampledMaxSize; ++n)
                 inputResampled[n] = 0;
             resampler.resampleLinear(&input[0], &inputResampled[0]);
@@ -1566,11 +1613,6 @@ void ThreeDAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& 
         // the net output accumulator for all sources
         const int outputSize = 2*currentN;
         STACK_ARRAY(float, output, outputSize)
-//    #ifdef WIN32
-//        float *output = static_cast<float *>(alloca(outputSize * sizeof(float)));
-//    #else
-//        float output[outputSize];
-//    #endif
         for (int n = 0; n < outputSize; ++n)
             output[n] = 0;
         
@@ -1578,24 +1620,16 @@ void ThreeDAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& 
         const int resampledNout = resampler.getNout();
         const int resampledSize = 2*resampledNout;
         STACK_ARRAY(float, outputResampled, resampledSize);
-//    #ifdef WIN32
-//        float *outputResampled = static_cast<float *>(alloca(resampledSize * sizeof(float)));
-//    #else
-//        float outputResampled[resampledSize];
-//    #endif
         for (int n = 0; n < resampledSize; ++n)
             outputResampled[n] = 0;
         
         float *inputPtr, *outputPtr;
         int inputLength;
-        if (fs != sampleRate_HRTF)
-        {
+        if (fs != sampleRate_HRTF) {
             inputPtr = &inputResampled[0];
             outputPtr = &outputResampled[0];
             inputLength = resampledNout;
-        }
-        else
-        {
+        } else {
             inputPtr = &input[0];
             outputPtr = &output[0];
             inputLength = currentN;
@@ -1605,17 +1639,18 @@ void ThreeDAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& 
         {
             Sources* copy = nullptr;
             const std::unique_lock<Mutex> lock (sources.get(copy), std::try_to_lock);
-            //const Locker lock (sources.get(copy));
             if (lock.owns_lock() && copy) {
-                //bool setSourcePosFromPath = false;
                 for (int s = 0; s < (const int)copy->size(); ++s)
                 {   // update the moving source position here for those sources automated on a path
-                    //setSourcePosFromPath = false;
-                    if (lockSourcesToPaths && playing)
-                        /*setSourcePosFromPath =*/ (*copy)[s].setParametricPosition(posSEC, playableSources[s].prevPathPosIndex, *sourcePathPositionsFromDAW[s]);
-                    // serves as a single point of update for the positional state to ensure positional continuity btw buffers
+					if (lockSourcesToPaths && playing) {
+						const auto endOfBufferPosSec = (loopingEnabled && posSEC + thisBufferDuration >= loopRegionEnd) ?
+							loopRegionBegin + posSEC + thisBufferDuration - loopRegionEnd : posSEC + thisBufferDuration;
+						(*copy)[s].setParametricPosition(endOfBufferPosSec, playableSources[s].prevPathPosIndex, 
+														 *sourcePathPositionsFromDAW[s]);		
+					}
+					// serves as a single point of update for the positional state to ensure positional continuity btw buffers
                     playableSources[s].updateFromSoundSource((*copy)[s]);
-                    playableSources[s].setDopplerOn(dopplerOn /*&& setSourcePosFromPath*/, speedOfSound);
+                    playableSources[s].setDopplerOn(dopplerOn, speedOfSound);
                     if (resetProcessingState)
                         playableSources[s].resetProcessingState();
                     if (! playableSources[s].getSourceMuted())
@@ -1634,21 +1669,26 @@ void ThreeDAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& 
         }
         
         // resample the processed audio back to the original sample rate of the buffer given to us
-        if (fs != sampleRate_HRTF)
-        {
+        if (fs != sampleRate_HRTF) {
             unsamplerCh1.unsampleLinear(outputResampled, resampledNout, output);
             unsamplerCh2.unsampleLinear(&outputResampled[resampledNout], resampledNout, &output[currentN]);
         }
         
         // copy final data to output buffer
-		for (int ch = 0; ch < 2; ++ch) 
-			buffer.copyFrom(ch, 0, &output[ch*currentN], currentN, 0.18f * wetOutputVolume); // 0.18 scales the volume to about the input volume for the default single source in front of the listener at rae coord (1,0,0)
-
-        if (dryOutputVolume > 0)
+        for (int ch = 0; ch < 2; ++ch)
+            buffer.copyFromWithRamp(ch, 0, &output[ch*currentN], currentN, 0.18f * prevWetOutputVolume, 0.18f * wetOutputVolume);
+            //buffer.copyFrom(ch, 0, &output[ch*currentN], currentN, 0.18f * wetOutputVolume); // 0.18 scales the volume to about the input volume for the default single source in front of the listener at rae coord (1,0,0)
+        
+        if (dryOutputVolume > 0) {
+            cauto dovStart = prevDryOutputVolume;
+            cauto dovInc = (dryOutputVolume - prevDryOutputVolume) / currentN;
             for (int ch = 0; ch < 2; ++ch)
                 for (int n = 0; n < currentN; ++n)
-                    *buffer.getWritePointer(ch, n) += stereoInput[ch*currentN + n] * dryOutputVolume;
+                    *buffer.getWritePointer(ch, n) += stereoInput[ch*currentN + n] * (dovStart + dovInc * n);
+        }
         
+        prevWetOutputVolume = wetOutputVolume;
+        prevDryOutputVolume = dryOutputVolume;
     } // end if inited
 }
 
@@ -1660,7 +1700,7 @@ bool ThreeDAudioProcessor::hasEditor() const
 
 AudioProcessorEditor* ThreeDAudioProcessor::createEditor()
 {
-    ThreeDAudioProcessorEditor* editor = new ThreeDAudioProcessorEditor (this);
+	ThreeDAudioProcessorEditor* editor = new ThreeDAudioProcessorEditor (this);
     return editor;
 }
 

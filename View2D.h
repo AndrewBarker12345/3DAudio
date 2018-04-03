@@ -1,25 +1,9 @@
-/*
- View2D.h
- 
- Represents a 2D, vertically/horizontally scrollable/zoomable view positioned within a holding box.
-
- Copyright (C) 2017  Andrew Barker
- 
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
- The author can be contacted via email at andrew.barker.12345@gmail.com.
-*/
+//
+//  View2D.h
+//
+//  Created by Andrew Barker on 9/21/16.
+//
+//
 
 #ifndef View2D_h
 #define View2D_h
@@ -27,6 +11,14 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "Box.h"
 #include "BoundedValue.h"
+
+//class View2DOld
+//{
+//public:
+//    float width = 1, height = 1;
+//    float xOffset = 0, yOffset = 0;
+//    float xScale = 1, yScale = 1;
+//};
 
 /** represents a 2D, vertically/horizontally scrollable/zoomable view positioned within a holding box */
 class View2D
@@ -140,5 +132,34 @@ private:
     Box *_holder, _boundary;
     BoundedValue<float> _width, _height, _xPosition, _yPosition;
 };
+
+
+//namespace View2DFuncs {
+//
+//float viewX (const View2D& view,
+//             float normalizedX) noexcept;
+//
+//float viewY (const View2D& view,
+//             float normalizedY) noexcept;
+//
+//Point<float> viewPoint (const View2D& view,
+//                        const Point<float>& normalizedPoint) noexcept;
+//
+//Box viewBox (const View2D& view,
+//             const Box& normalizedBox) noexcept;
+//    
+//float normalizedX (const View2D& view,
+//                   float viewX) noexcept;
+//
+//float normalizedY (const View2D& view,
+//                   float viewY) noexcept;
+//
+//Point<float> normalizedPoint (const View2D& view,
+//                              const Point<float>& viewPoint) noexcept;
+//
+//Box normalizedBox (const View2D& view,
+//                   const Box& viewBox) noexcept;
+//    
+//}
 
 #endif /* View2D_h */
