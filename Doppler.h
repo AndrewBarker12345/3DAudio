@@ -2,7 +2,7 @@
 //  Doppler.h
 //  ThreeDAudio
 //
-//  Created by Andrew Barker on 4/16/15.
+//  Created by Andrew Barker on 4/2/18.
 //
 //
 /*
@@ -37,11 +37,17 @@ class Doppler
 public:
 	/*Doppler() noexcept;
 	~Doppler();*/
+    /** process an input audio buffer at certain distance from the listener such that the doppler effect is applied to output */
 	void process(float distance, int bufferSize, const float* input, float* output) noexcept;
+    /** allocate enough memory for the doppler effect given a maximum sound source distance (in meters), maximum buffer size, and minimum speed of sound (in m/s) */
 	void allocate(float maxDistance, int maxBufferSize, float speedOfSound);
+    /** free all memory */
 	void free()	noexcept;
+    /** reset the doppler effect state */
 	void reset() noexcept;
+    /** specify the sample rate of the audio being processed */
 	void setSampleRate(float sampleRate) noexcept;
+    /** set the speed of sound for the doppler effect */
 	void setSpeedOfSound(float speedOfSound) noexcept;
 private:
 	// circular buffer for holding delayed input
@@ -58,13 +64,31 @@ private:
 	float delayPrev = -1; 
 	// distance delay over input sample slope at begining of current input buffer / end of last input buffer
 	float slopePrev = 0;
+    // previous sample put into circular buffer
 	float prevSample = 0;
+    // previous sample's delay compensated index
 	float prevSampleDelayedIdx = 0;
-	//// previous input buffer size
-	//float prevBufferSize = 0;
-	// last sample of previous buffer
-	//float lastSample = 0;
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // OLD DOPPLER EFFECT
 //#include "PolynomialSpline.h"

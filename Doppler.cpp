@@ -50,7 +50,6 @@ void Doppler::process(const float distance, const int bufferSize, const float* i
 	const auto a2 = _a2, a3 = _a3;
     const auto denom = a1*bufferSize + a2*bufferSize*bufferSize + a3*bufferSize*bufferSize*bufferSize;
 	const auto delayScale = denom == 0 ? 0 : (delay - delayPrev) / denom; // check for div by 0
-	//const auto delayScale = ds != ds ? 0 : ds; // check for div by 0
 	for (int n = 0; n < bufferSize; ++n) {
 		const auto delayedIdx = a0 + (a1*n + a2*n*n + a3*n*n*n) * delayScale;
 		auto fidx = bufferInIdx + delayedIdx;
