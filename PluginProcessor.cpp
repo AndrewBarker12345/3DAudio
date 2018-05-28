@@ -1473,7 +1473,7 @@ void ThreeDAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
         fs = sampleRate;
         // set doppler(s) to the new sample rate, reallocation for this change happens in allocateForMaxBufferSize() below
         for (auto& s : playableSources)
-            s.setDopplerSampleRate(fs);
+            s.setDopplerSampleRate(sampleRate_HRTF/*fs*/); // doppler processing is done @ sample rate of hrtf data
         // TODO: detect largest latency of doppler and factor that in to the setLatencySamples() call below
     }
 	maxBufferSizePreparedFor = N;
