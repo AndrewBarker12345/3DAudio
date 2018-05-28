@@ -1482,7 +1482,7 @@ void ThreeDAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
         unsamplerCh1 = Resampler(sampleRate_HRTF, N, fs, false);
         unsamplerCh2 = Resampler(sampleRate_HRTF, N, fs, false);
         setLatencySamples(1);
-		maxBufferSizePreparedFor = resampler.getNoutMax();
+	maxBufferSizePreparedFor = std::max(resampler.getNoutMax(), N.load());
     }
 //    {
 //        sources.load(std::vector<SoundSource>(1));
@@ -1534,7 +1534,7 @@ void ThreeDAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& 
                 resampler = Resampler(fs, N, sampleRate_HRTF, true);
                 unsamplerCh1 = Resampler(sampleRate_HRTF, N, fs, false);
                 unsamplerCh2 = Resampler(sampleRate_HRTF, N, fs, false);
-                maxBufferSizePreparedFor = resampler.getNoutMax();
+                maxBufferSizePreparedFor = std::max(resampler.getNoutMax(), N.load());
             }
             for (auto& s : playableSources)
                 s.allocateForMaxBufferSize(maxBufferSizePreparedFor);
