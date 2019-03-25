@@ -785,7 +785,6 @@ void PlayableSoundSource::allocateForMaxBufferSize(const int N_max)
 
 void PlayableSoundSource::setDopplerOn(const bool newDopplerOn, const float newSpeedOfSound)
 {
-    const bool speedOfSoundChanged = (newSpeedOfSound != dopplerSpeedOfSound);
     dopplerSpeedOfSound = newSpeedOfSound;
 	doppler[0].setSpeedOfSound(dopplerSpeedOfSound);
 	doppler[1].setSpeedOfSound(dopplerSpeedOfSound);
@@ -794,15 +793,18 @@ void PlayableSoundSource::setDopplerOn(const bool newDopplerOn, const float newS
 			doppler[0].allocate(dopplerMaxDistance, Nmax, 0.1f);
 			doppler[1].allocate(dopplerMaxDistance, Nmax, 0.1f);
 		} else {
-			doppler[0].free();
-			doppler[1].free();
+            doppler[0].free();
+            doppler[1].free();
 		}
 		// reset processing state of sound source
-		for (auto& i : inputs)
-			i.clear();
-		newInputIndex = 0;
-		HRIRChange = false;
-		prevRAE = posRAE;
+//        for (auto& i : inputs)
+//            i.clear();
+//        newInputIndex = 0;
+        resetProcessingState();
+//        for (auto& x : inputBuffer)
+//            x = 0;
+//        HRIRChange = false;
+//        prevRAE = posRAE;
 	}
     //if (newDopplerOn != dopplerOn || speedOfSoundChanged)
     //{
@@ -849,9 +851,13 @@ void PlayableSoundSource::resetProcessingState() noexcept
         doppler[0].reset();
         doppler[1].reset();
     }
-    for (auto& i : inputs)
-        i.clear();
-    newInputIndex = 0;
+//    for (auto& i : inputs)
+//        i.clear();
+//    newInputIndex = 0;
+    for (auto& x : inputBuffer)
+        x = 0;
+    inputBufferInPos = 0;
+    inputBufferOutPos = 0;
     HRIRChange = false;
     prevRAE = posRAE;
 }

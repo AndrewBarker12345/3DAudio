@@ -42,7 +42,7 @@ ThreeDAudioProcessorEditor::ThreeDAudioProcessorEditor (ThreeDAudioProcessor* ow
 {
     // start 5 fps timer for updating the displayScale
     startTimer(3, 1000.0f / 5.0f);
-    displayScale = Desktop::getInstance().getDisplays().getDisplayContaining (getScreenBounds().getCentre()).scale; // retina scaling change
+    displayScale = Desktop::getInstance().getDisplays().getMainDisplay().scale; // mac retina display scaling change
     
     // keep a pointer to the processor (no longer necessary b/c getProcessor() is available in this class)
     processor = ownerFilter;
@@ -132,7 +132,7 @@ ThreeDAudioProcessorEditor::ThreeDAudioProcessorEditor (ThreeDAudioProcessor* ow
     openGLContext.attachTo (*this);
     
     // start 30fps timer for OpenGL rendering
-    startTimer(0, 1000.0f / glWindow.frameRate);
+    startTimer(0, 1000.0f/glWindow.frameRate);
     
     // tells this class it wants to be able to receive key events
     setWantsKeyboardFocus(true);
@@ -248,7 +248,12 @@ ThreeDAudioProcessorEditor::ThreeDAudioProcessorEditor (ThreeDAudioProcessor* ow
     mixSlider.setTextInputRestrictor(std::make_unique<DecimalNumberRestrictor>(0.0f, 100.0f, 0, "%"));
     mixSlider.setValue(processor->savedMixValue);
     //mixSlider.setValue(100.0f * processor->wetOutputVolume / std::max(volumeSlider.getValue(), 0.00001f/*avoid divide by 0*/));
+    
+    // used to force redraw stuff a few times just when plugin editor is opening/reopening, vst3 on mac was opeing window but not drawings some text and interpolator lines (3-18-19)
+    startTimer(4, 50);
 }
+
+int timer4count = 0; // counter for timer 4, see just above
 
 ThreeDAudioProcessorEditor::~ThreeDAudioProcessorEditor()
 {
@@ -510,13 +515,13 @@ void ThreeDAudioProcessorEditor::newOpenGLContextCreated()
     
     glClearColor (0.0, 0.0, 0.0, 0.0);
     glShadeModel (GL_SMOOTH);
-    
+
     // materials for lighting
     GLfloat mat_specular[] = { 1.0, 0.1, 1.0, 1.0 };
     GLfloat mat_shininess[] = { 50.0 };
     glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
     glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-    
+
     // make sure all source lights (0-6) will be visible
     GLfloat source_ambient[] = { 0.0, 0.0, 0.0, 1.0 };
     GLfloat source_diffuse[] = { 0.5, 0.4, 1.0, 1.0 };
@@ -526,7 +531,7 @@ void ThreeDAudioProcessorEditor::newOpenGLContextCreated()
         glLightfv(GL_LIGHT0+i, GL_DIFFUSE, source_diffuse);
         glLightfv(GL_LIGHT0+i, GL_SPECULAR, source_specular);
     }
-    
+
     // ambient light
     GLfloat light_ambient[] = { 1.0, 1.0, 1.0, 1.0 };
     glLightfv(GL_LIGHT7, GL_AMBIENT, light_ambient);
@@ -809,7 +814,7 @@ void ThreeDAudioProcessorEditor::drawMain()
         // ******** setup for entering selection mode ********
         const float w = getWidth();
         const float h = getHeight();
-        GLint mouse_x = getMouseXYRelative().getX() * displayScale; // retina scaling change
+        GLint mouse_x = getMouseXYRelative().getX() * displayScale; // mac retina display scaling change
         GLint mouse_y = getMouseXYRelative().getY() * displayScale;
         GLint viewport[4];
         
@@ -2502,7 +2507,7 @@ void ThreeDAudioProcessorEditor::myResized()
     
     // adjust tabs boundary
     b = tabs.getBoundary();
-    b.setTop(1 - pixelsToNormalized(1, getHeight()));// glWindow.height)); // retina scaling change
+    b.setTop(1 - pixelsToNormalized(1, getHeight()));// glWindow.height)); // mac retina display scaling change
     b.setBottom(b.getTop() - pixelsToNormalized(20, getHeight()/*glWindow.height*/) / tabs.getSelectedTextLook().verticalPad);
     tabs.setBoundary(b);
     
@@ -2679,11 +2684,11 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
 //    const std::unique_lock<std::mutex> lockGL (glLock);  // this causes huge stutters in GUI's rendering, especially in Tracktion
 //    if (!lockGL.owns_lock())
 //        return;
-    
+
     // for Windows we gotta reset this for every frame (just doing it in resized() don't work for some reason...)
 //#ifdef WIN32
     // just resize the proj matrix here b/c doing it in resize requires locking to synchronize the gl and juce message threads
-    const int w = getWidth() * displayScale; // retina scaling change
+    const int w = getWidth() * displayScale; // mac retina display scaling change
     const int h = getHeight() * displayScale;
     // Tell OpenGL how to convert from coordinates to pixel values
     glViewport(0, 0, w, h);
@@ -2693,28 +2698,28 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
     glLoadIdentity();
     // Set the camera perspective
     //gluPerspective
-    glpp::perspective (45.0,                  //The camera angle
+    glpp::perspective (45.0,               //The camera angle
                    (double)w / (double)h, //The width-to-height ratio
                    0.05,                 //The near z clipping coordinate
                    200.0);              //The far z clipping coordinate
     // switch back to drawing matrix
     glMatrixMode(GL_MODELVIEW);
 //#endif
-    
+
     glWindow.checkResized(w, h);
     if (glWindow.resized)
         myResized();
-    
+
     // reset the playing state of the processor if processBlock() not called in a while
     processor->resetPlaying(glWindow.frameRate);
-        
+
     const Point<float> mousePos = {getMouseX(), getMouseY()};
-    
+
     // lock us a copy of the sources for drawing
     sources = nullptr;
     const Locker lock (processor->sources.get(sources));
     if (sources) {
-        
+
         if (processor->presetJustLoaded) {
             if (processor->dopplerOn != dopplerButton.isDown())
                 dopplerButton.press();
@@ -2724,12 +2729,12 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
             //updatePositioner3DTextValueAndPosition();
             processor->presetJustLoaded = false;
         }
-        
+
         // reset this stuff for detecting mouse over selectable objects so it has to be reset during this render cycle for there to be any action on those selectable objects
         mouseOverSourceIndex = -1;
         mouseOverPathPointSourceIndex = -1;
         mouseOverPathPointIndex = -1;
-        
+
 //        // advance animation state
 //        if (animationOn[0]) {
 //            animationTime[0] += getTimerInterval(0) / glWindow.frameRate;// * 0.0001f;
@@ -2749,20 +2754,20 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
 //                animationOn[1] = false;
 //            }
 //        }
-        
+
         // clear screen
         glClear(GL_COLOR_BUFFER_BIT);
-        
+
         // enable blending for translucency depending on alpha val (4th val of glcolor4f)
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        
+
         // added to prevent blank text from apprearing when plugin window is opened and the volume and mix sliders are set to zero
         if (volumeSlider.getValueTextBox().getText() == "")
             volumeSlider.setTextValue(volumeSlider.getValue());
         if (mixSlider.getValueTextBox().getText() == "")
             mixSlider.setTextValue(mixSlider.getValue());
-        
+
         switch (processor->displayState) {
             case DisplayState::MAIN:
                 drawMain();
@@ -2781,7 +2786,7 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
                 glMatrixMode(GL_MODELVIEW);
                 glLoadIdentity();
                 glDisable(GL_DEPTH_TEST);   // either GL_DEPTH_TEST or GL_CULL_FACE seem to work
-                
+
                 processingModeOptions.setSelected((int)processor->processingMode.load(), false); // make sure processing mode is displayed correctly
                 processingModeOptions.setAutoDetected(processor->isHostRealTime ? 0 : 1);
                 processingModeOptions.draw(glWindow, mousePos);
@@ -2800,12 +2805,12 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
                     processingModeHelp.setText(processingModeHelpText[currentProcessingModeHelpIndex]);
                 }
                 processingModeHelp.draw(glWindow);
-                
+
                 //etb.draw(glWindow, mousePos);
-                
+
                 websiteButton.draw(glWindow, mousePos);
                 //websiteMessage.draw(glWindow);
-                
+
                 // Making sure we can render 3d again
                 glMatrixMode(GL_PROJECTION);
                 glPopMatrix();
@@ -2815,7 +2820,7 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
             case DisplayState::NUM_DISPLAY_STATES:
                 break;
         }
-        
+
         // set up 2d projection for HUD
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
@@ -2825,12 +2830,12 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         glDisable(GL_DEPTH_TEST);   // either GL_DEPTH_TEST or GL_CULL_FACE seem to work
-        
+
         // draw 2d stuff here ...
-        
+
         tabs.mouseOverEnabled = !selectionBox.isActive()/*mouseDragging*/ && !loopRegionBeginSelected && !loopRegionEndSelected && !pathAutomationPointsGrabbedWithMouse;
         tabs.draw(glWindow, mousePos);
-        
+
         if (processor->displayState != DisplayState::SETTINGS) {
             cauto mouseOverEnabled =
             dopplerButton.mouseOverEnabled = !selectionBox.isActive()/*mouseDragging*/
@@ -2838,7 +2843,7 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
                                           && !loopRegionEndSelected
                                           && !pathAutomationPointsGrabbedWithMouse;
             dopplerButton.draw(glWindow, mousePos);
-            
+
             // these are to update slider values if a preset is loaded and changes the values
             cauto newVolVal = processor->wetOutputVolume + processor->dryOutputVolume;
             if (std::abs(newVolVal - volumeSlider.getValue()) > 0.001f) // don't reset the volumeSlider value and therefor trigger value set animation unless the value changes significantly
@@ -2847,12 +2852,12 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
             cauto newMixVal = 100.0f * processor->wetOutputVolume / std::max(volumeSlider.getValue(), 0.00001f/*avoid div by 0*/);
             if (std::abs(newMixVal - mixSlider.getValue()) > 0.1f && volumeSlider.getValue() > 0) // don't reset the mixSlider value and therefor trigger value set animation unless the value changes significantly and the
                 mixSlider.setValue(newMixVal);
-            
+
             volumeSlider.draw(glWindow, mousePos, mouseOverEnabled);
             mixSlider.draw(glWindow, mousePos, mouseOverEnabled);
             drawHelp();
         }
-        
+
 //        // draw some lines around the window boarder to help make it more visible
 //        glColor4f(1, 1, 1, 1.f);
 //        //glLineWidth(2);
@@ -2865,7 +2870,7 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
 //        glVertex2f(w, h);
 //        glEnd();
 //        //glLineWidth(1);
-        
+
         // ehh....
 //        const Box windowBoundary;
 //        const bool mouseOver = windowBoundary.contains(mousePos);
@@ -2891,16 +2896,16 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
 //            glColor4f(0, 0, 0, alpha);
 //            windowBoundary.drawFill();
 //        }
-        
+
         // Making sure we can render 3d again
         glMatrixMode(GL_PROJECTION);
         glPopMatrix();
         glMatrixMode(GL_MODELVIEW);
-        
+
 //        // needed for deciding when to draw the pathPos interp
 //        prevAutomationViewOffset = automationViewOffset;
 //        prevAutomationViewWidth = automationViewWidth;
-        
+
         // Windows no like
         // swap buffers for double buffering
         //glutSwapBuffers();
@@ -2909,10 +2914,9 @@ void ThreeDAudioProcessorEditor::renderOpenGL()
     // doing this at the end of drawing the frame b/c positionerTextMouseMoved() depends on the mouse over checking that happens when drawing
     if (mouseX != getMouseX() || mouseY != getMouseY())
         myMouseMoved();
-    
+
     glWindow.saveResized();
 }
-
 
 void ThreeDAudioProcessorEditor::timerCallback(const int timerID)
 {
@@ -2947,9 +2951,17 @@ void ThreeDAudioProcessorEditor::timerCallback(const int timerID)
         case 3:
             {
             //const MessageManagerLock messageLock;
-            displayScale = Desktop::getInstance().getDisplays().getDisplayContaining (getScreenBounds().getCentre()).scale; // retina scaling change
+            displayScale = Desktop::getInstance().getDisplays().getMainDisplay().scale; // mac retina display scaling change
             }
             break;
+        case 4:
+            glWindow.resized = true;
+            for (auto& dl : pathDisplayList)
+                dl = 0;
+            for (auto& dl : pathAutomationDisplayList)
+                dl = 0;
+            if (timer4count++ >= 10)
+                stopTimer(4);
         default:
             break;
     }
@@ -3211,7 +3223,7 @@ void ThreeDAudioProcessorEditor::mouseDrag(const MouseEvent& event)
 //    const float mouse_x = getMouseX();
 //    const float mouse_y = getMouseY();
 //    
-    cauto mouseDown = pixelsToNormalized(event.getMouseDownPosition(), getWidth(), getHeight());//glWindow.width, glWindow.height); // retina scaling change
+    cauto mouseDown = pixelsToNormalized(event.getMouseDownPosition(), getWidth(), getHeight());//glWindow.width, glWindow.height); // mac retina display scaling change
     cauto mouseCurrent = pixelsToNormalized(event.getPosition(), getWidth(), getHeight());//glWindow.width, glWindow.height);
     
     if (processor->displayState == DisplayState::MAIN) {
@@ -4065,7 +4077,7 @@ void ThreeDAudioProcessorEditor::autoAlignAutomationPoints(const bool alignInX,
                             if (alignInX && !alignedInX) {
                                 const float d = std::abs(x_scale*pt_x - mouse_x);
                                 if (d < distThresh) {
-                                    autoAlignedIndex[0] = s,
+                                    autoAlignedIndex[0] = s;
                                     autoAlignedIndex[1] = pts_indecies[i]; // the auto aligned pt's index
                                     autoAlignedIndex[2] = (((mouse_x/x_scale+1)-1)*pathAutomationView.getWidth()*0.5+pathAutomationView.getXPosition()) - pts[i][0]; // aligned in x dim (∆ = new - old)
                                     pathPtAutoAlignX = mouse_x;
@@ -4082,7 +4094,7 @@ void ThreeDAudioProcessorEditor::autoAlignAutomationPoints(const bool alignInX,
                                 const float pt_y = pts[i][1]*2.0-1.0;
                                 const float d = std::abs(y_scale*pt_y - mouse_y);
                                 if (d < distThresh) {
-                                    autoAlignedIndex[0] = s,
+                                    autoAlignedIndex[0] = s;
                                     autoAlignedIndex[1] = pts_indecies[i]; // the auto aligned pt's index
                                     autoAlignedIndex[3] = 0.5*(mouse_y/y_scale+1) - pts[i][1]; // aligned in y dim (∆ = new - old)
                                     pathPtAutoAlignY = mouse_y;
@@ -4108,7 +4120,7 @@ void ThreeDAudioProcessorEditor::autoAlignAutomationPoints(const bool alignInX,
                                             const float ptX = x_scale*((pts[i][0]+A)*B-1.0);
                                             const float d = std::abs(ptX - lineUpPtX);
                                             if (d < distThresh) {
-                                                autoAlignedIndex[0] = s,
+                                                autoAlignedIndex[0] = s;
                                                 autoAlignedIndex[1] = pts_indecies[i]; // the auto aligned pt's index
                                                 autoAlignedIndex[2] = allAutoPts[s2][j][0] - pts[i][0]; // aligned in x dim (∆ = new - old)
                                                 pathPtAutoAlignX = lineUpPtX;
@@ -4126,7 +4138,7 @@ void ThreeDAudioProcessorEditor::autoAlignAutomationPoints(const bool alignInX,
                                             const float ptY = y_scale*(pts[i][1]*2.0-1.0);
                                             const float d = std::abs(ptY - lineUpPtY);
                                             if (d < distThresh) {
-                                                autoAlignedIndex[0] = s,
+                                                autoAlignedIndex[0] = s;
                                                 autoAlignedIndex[1] = pts_indecies[i]; // the auto aligned pt's index
                                                 autoAlignedIndex[3] = allAutoPts[s2][j][1] - pts[i][1]; // aligned in y dim (∆ = new - old)
                                                 pathPtAutoAlignY = lineUpPtY;

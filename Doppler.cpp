@@ -96,11 +96,10 @@ void Doppler::process(const float distance, const int bufferSize, const float* i
 	}
 }
 
-void Doppler::allocate(const float maxDistance, const int maxBufferSize, const float _speedOfSound)
+void Doppler::allocate(const float maxDistance, const int maxBufferSize, const float speedOfSoundToPlanAllocationSize)
 {
-	const auto maxDelayInSamples = maxDistance / _speedOfSound * sampleRate;
+	const auto maxDelayInSamples = maxDistance / speedOfSoundToPlanAllocationSize * sampleRate;
 	buffer.resize(maxBufferSize + maxDelayInSamples);
-	speedOfSound = _speedOfSound;
 	reset();
 }
 

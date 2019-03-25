@@ -217,8 +217,8 @@ private:
     float dopplerSpeedOfSound = defaultSpeedOfSound;
     //bool dopplerMaxDistanceChanged = false;
     // to hold previous buffer(s)'s inputs for computing convolution tails
-    std::vector<Input> inputs;
-    int newInputIndex = 0;
+    //std::vector<Input> inputs;
+    //int newInputIndex = 0;
     int Nmax = 0;
 	
 	std::vector<float> inputBuffer;

@@ -147,7 +147,7 @@ public:
 //        operator const T*() const noexcept { return resource; }
 //        operator bool() const noexcept { return resource != nullptr; }
 //    };
-//    
+//
 //    ScopeLockedResource get() noexcept
 //    {
 //        T* resource;

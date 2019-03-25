@@ -80,8 +80,8 @@ ThreeDAudioProcessor::ThreeDAudioProcessor()
 		// binary hrtf file name
 		String path;
 #ifdef __APPLE__
-		path = File::getSpecialLocation(File::currentApplicationFile).getFullPathName();
-		path += "/Contents/3DAudioData.bin";
+        path = File::getSpecialLocation(File::currentApplicationFile).getFullPathName();
+        path += "/Contents/3DAudioData.bin";
 #elif _WIN32
 		path = File::getSpecialLocation(File::currentApplicationFile).getParentDirectory().getFullPathName();
 		path += "/3DAudioData.bin";
@@ -1457,7 +1457,7 @@ void ThreeDAudioProcessor::setCurrentProgram (int index)
 
 const String ThreeDAudioProcessor::getProgramName (int index)
 {
-    return String::empty;
+    return String();
 }
 
 void ThreeDAudioProcessor::changeProgramName (int index, const String& newName)
@@ -1482,7 +1482,7 @@ void ThreeDAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
         unsamplerCh1 = Resampler(sampleRate_HRTF, N, fs, false);
         unsamplerCh2 = Resampler(sampleRate_HRTF, N, fs, false);
         setLatencySamples(1);
-	maxBufferSizePreparedFor = std::max(resampler.getNoutMax(), N.load());
+		maxBufferSizePreparedFor = std::max(resampler.getNoutMax(), N.load());
     }
 //    {
 //        sources.load(std::vector<SoundSource>(1));

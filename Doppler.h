@@ -40,7 +40,7 @@ public:
     /** process an input audio buffer at certain distance from the listener such that the doppler effect is applied to output */
 	void process(float distance, int bufferSize, const float* input, float* output) noexcept;
     /** allocate enough memory for the doppler effect given a maximum sound source distance (in meters), maximum buffer size, and minimum speed of sound (in m/s) */
-	void allocate(float maxDistance, int maxBufferSize, float speedOfSound);
+	void allocate(float maxDistance, int maxBufferSize, float speedOfSoundToPlanAllocationSize);
     /** free all memory */
 	void free()	noexcept;
     /** reset the doppler effect state */
