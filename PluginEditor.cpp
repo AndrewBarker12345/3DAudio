@@ -42,7 +42,7 @@ ThreeDAudioProcessorEditor::ThreeDAudioProcessorEditor (ThreeDAudioProcessor* ow
 {
     // start 5 fps timer for updating the displayScale
     startTimer(3, 1000.0f / 5.0f);
-    displayScale = Desktop::getInstance().getDisplays().getMainDisplay().scale; // mac retina display scaling change
+	displayScale = Desktop::getInstance().getDisplays().getMainDisplay().scale; // mac retina display scaling change
     
     // keep a pointer to the processor (no longer necessary b/c getProcessor() is available in this class)
     processor = ownerFilter;
@@ -2950,9 +2950,9 @@ void ThreeDAudioProcessorEditor::timerCallback(const int timerID)
             break;
         case 3:
             {
-            //const MessageManagerLock messageLock;
-            displayScale = Desktop::getInstance().getDisplays().getMainDisplay().scale; // mac retina display scaling change
-            }
+			auto d = Desktop::getInstance().getDisplays().getDisplayContaining(getScreenBounds().getCentre());
+			displayScale = d.scale;//Desktop::getInstance().getDisplays().findDisplayForPoint(getScreenPosition()).scale; // mac retina display scaling change
+			}
             break;
         case 4:
             glWindow.resized = true;
